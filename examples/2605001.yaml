@@ -1,0 +1,34 @@
+number: "2605001"
+
+issue_date: 2026-05-15
+tax_point_date: 2026-05-15
+due_date: 2026-05-29
+
+customer:
+  name: Vzorová firma s.r.o.
+  ico: "87654326"
+  dic: CZ87654326
+  vat_payer: true
+  address:
+    street: Vzorová 1234/5
+    city: Praha
+    zip: "110 00"
+    country: Česká republika
+    country_code: CZ
+
+payment:
+  bank_account:
+    prefix: "19"
+    number: "2000145399"
+    bank_code: "0100"
+  payment_form: Převodem
+  variable_symbol: "2605001"
+
+lines:
+  - quantity: 1
+    unit: ks
+    description: přednáška o umělé inteligenci
+    unit_price_net: 5000.00
+    vat_rate: 21
+
+issued_by: Petr Svoboda

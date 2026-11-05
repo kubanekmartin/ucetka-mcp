@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<Pisemnost nazevSW="ucetka-mcp" verzeSW="0.1.0">
+  <DPHKH1 verzePis="03.01">
+    <VetaD dokument="KH1" k_uladis="DPH" rok="2026" ctvrt="2" d_poddp="26.07.2026" khdph_forma="B"/>
+    <VetaP c_ufo="451" c_pracufo="2001" dic="98765434" typ_ds="F" jmeno="Petr" prijmeni="Svoboda" zkrobchjm="PETR SVOBODA" ulice="Hlavní" c_pop="123" naz_obce="Kolín" psc="28002" email="test@example.com" c_telef="700000000"/>
+    <VetaA2 c_radku="1" k_stat="IE" vatid_dod="1234567T" c_evid_dd="INV-2026-0401" dppd="01.04.2026" zakl_dane1="250.4" dan1="52.58"/>
+    <VetaA2 c_radku="2" k_stat="PL" vatid_dod="1234567890" c_evid_dd="77/cz/czk/2026/03" dppd="01.04.2026" zakl_dane1="45.1" dan1="9.47"/>
+    <VetaA2 c_radku="3" k_stat="IE" vatid_dod="1234567T" c_evid_dd="INV-2026-0430" dppd="30.04.2026" zakl_dane1="310" dan1="65.1"/>
+    <VetaA2 c_radku="4" c_evid_dd="US-0003" dppd="07.05.2026" zakl_dane1="1950" dan1="409.5"/>
+    <VetaA2 c_radku="5" k_stat="IE" vatid_dod="1234567T" c_evid_dd="INV-2026-0531" dppd="31.05.2026" zakl_dane1="405.2" dan1="85.09"/>
+    <VetaA2 c_radku="6" c_evid_dd="us-0004" dppd="07.06.2026" zakl_dane1="1980.6" dan1="415.93"/>
+    <VetaA2 c_radku="7" k_stat="IE" vatid_dod="1234567T" c_evid_dd="INV-2026-0630" dppd="30.06.2026" zakl_dane1="690.75" dan1="145.06"/>
+    <VetaA4 c_radku="1" dic_odb="87654326" c_evid_dd="2604001" dppd="30.04.2026" zakl_dane1="42000" dan1="8820" kod_rezim_pl="0" zdph_44="N"/>
+    <VetaA4 c_radku="2" dic_odb="87654326" c_evid_dd="2605002" dppd="31.05.2026" zakl_dane1="38500" dan1="8085" kod_rezim_pl="0" zdph_44="N"/>
+    <VetaA4 c_radku="3" dic_odb="87654326" c_evid_dd="2606001" dppd="30.06.2026" zakl_dane1="45200" dan1="9492" kod_rezim_pl="0" zdph_44="N"/>
+    <VetaA5 zakl_dane1="5000" dan1="1050"/>
+    <VetaB2 c_radku="1" dic_dod="99887762" c_evid_dd="FV-2026-118" dppd="02.06.2026" zakl_dane1="8900" dan1="1869" pomer="N" zdph_44="N"/>
+    <VetaB2 c_radku="2" dic_dod="99887762" c_evid_dd="FV-2026-131" dppd="23.06.2026" zakl_dane1="15400" dan1="3234" pomer="N" zdph_44="N"/>
+    <VetaB3 zakl_dane1="5400" dan1="1134"/>
+    <VetaC obrat23="130700" pln23="29700" celk_zd_a2="5632.05"/>
+  </DPHKH1>
+</Pisemnost>

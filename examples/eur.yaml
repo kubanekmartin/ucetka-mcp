@@ -1,0 +1,38 @@
+number: "2610903"
+
+issue_date: 2026-10-04
+tax_point_date: 2026-10-04
+due_date: 2026-10-18
+
+customer:
+  name: Beispiel GmbH
+  dic: DE123456789
+  vat_payer: true
+  address:
+    street: Musterstraße 1
+    city: Berlin
+    zip: "10115"
+    country: Německo
+    country_code: DE
+
+reverse_charge: true
+
+currency: EUR
+exchange_rate: 24.465
+exchange_rate_amount: 1
+
+payment:
+  bank_account:
+    prefix: "19"
+    number: "2000145399"
+    bank_code: "0100"
+  variable_symbol: "2610903"
+
+lines:
+  - quantity: 4
+    unit: h
+    description: AI workshop (online)
+    unit_price_net: 100
+    vat_rate: 0
+
+issued_by: Petr Svoboda

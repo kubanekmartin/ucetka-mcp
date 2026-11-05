@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Daně a prognóza {{ o.year }}{% endblock %}
+{% macro pct(v) %}{{ '%.1f'|format(v * 100)|replace('.', ',') }} %{% endmacro %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Daně a prognóza {{ o.year }}</h1>
+        <p>Stav k {{ fmt_date(o.today) }} · {{ 'skutečné výdaje' if o.settings.expense_mode == 'actual' else 'paušál %d %%' % o.settings.flat_rate_percent }} · příjmy = zaplacené faktury + letos vystavené nezaplacené</p>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+        {% if fc %}
+        <nav class="segmented fc" aria-label="Metoda prognózy">
+            <a href="/dane?year={{ o.year }}&metoda=ytd" {% if method == 'ytd' %}aria-current="page"{% endif %}>Průměr roku</a>
+            <a href="/dane?year={{ o.year }}&metoda=3m" {% if method == '3m' %}aria-current="page"{% endif %}>Poslední 3 měsíce</a>
+        </nav>
+        {% endif %}
+        <nav class="segmented" aria-label="Rok">
+            {% for y in years %}<a href="/dane?year={{ y }}&metoda={{ method }}" {% if y == o.year %}aria-current="page"{% endif %}>{{ y }}</a>{% endfor %}
+        </nav>
+    </div>
+</div>
+
+{% if fc %}
+<p class="fc-off-hint" style="margin:0 0 16px">Zapni <strong>Prognóza do konce roku</strong> vlevo dole a uvidíš, jak rok nejspíš dopadne.</p>
+{% endif %}
+
+<section class="grid split" style="margin-bottom:16px">
+    <div class="card">
+        <h2>Daň a pojištění</h2>
+        <div class="table-wrap"><table>
+            <thead><tr>
+                <th scope="col"><span class="sr-only">Položka</span></th>
+                <th scope="col" class="n">Teď</th>
+                {% if fc %}<th scope="col" class="n fc">Prognóza 31. 12.</th>{% endif %}
+            </tr></thead>
+            <tbody>
+            {% set rows = [
+                ("Příjmy", o.tax.income, fc.tax.income if fc else none),
+                ("Výdaje skutečné (zaplacené)" if o.settings.expense_mode == "actual" else "Výdaje paušálem", o.tax.expenses, fc.tax.expenses if fc else none),
+                ("Zisk", o.tax.profit, fc.tax.profit if fc else none),
+                ("Základ daně", o.tax.tax_base, fc.tax.tax_base if fc else none),
+                ("Daň z příjmů po slevě", o.tax.tax, fc.tax.tax if fc else none),
+                ("Sociální pojištění", o.social.amount, fc.social.amount if fc else none),
+                ("Zdravotní pojištění", o.health.amount, fc.health.amount if fc else none),
+            ] %}
+            {% for label, now, later in rows %}
+            <tr><td>{{ label }}</td><td class="n">{{ kc(now) }}</td>{% if fc %}<td class="n fc">{{ kc(later) }}</td>{% endif %}</tr>
+            {% endfor %}
+            </tbody>
+            <tfoot>
+                {% set eff = o.effective %}
+                <tr><td>Daň + pojištění celkem</td><td class="n">{{ kc(eff.burden) }}</td>{% if fc %}<td class="n fc">{{ kc(fc.effective.burden) }}</td>{% endif %}</tr>
+                <tr><td>Efektivně z příjmů</td><td class="n">{{ pct(eff.on_income) }}</td>{% if fc %}<td class="n fc">{{ pct(fc.effective.on_income) }}</td>{% endif %}</tr>
+                <tr><td>Efektivně ze zisku</td><td class="n">{{ pct(eff.on_profit) }}</td>{% if fc %}<td class="n fc">{{ pct(fc.effective.on_profit) }}</td>{% endif %}</tr>
+            </tfoot>
+        </table></div>
+        <div class="note">Bez DPH — ta je průběžná (vybereš ji od odběratele a odvedeš). Odhad, ne daňové přiznání.</div>
+        {% if fc %}
+        <div class="note fc">
+            Prognóza: {{ kc(fc.run_rate) }} měsíčně ({{ 'průměr' if method == 'ytd' else 'průměr posledních' }} {{ fc.basis_months }} dokončených měsíců fakturace podle DUZP)
+            × zbytek roku + co je už vystavené. Nepočítá s tím, že faktury z prosince zaplacené v lednu se daní až příští rok.
+        </div>
+        {% endif %}
+    </div>
+    <div class="card">
+        <h2>Limity, které tě zajímají</h2>
+        {% for l in limits %}
+        {% set now_pct = [l.share * 100, 100]|min %}
+        <div class="limit">
+            <div class="limit-head"><span>{{ l.label }}</span><span class="n">{{ kc(l.threshold) }}</span></div>
+            <div class="meter dual {{ 'over' if l.share > 1 }}" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ now_pct|round|int }}" aria-label="{{ l.label }}">
+                {% if l.forecast is not none %}<span class="fc-bar fc" style="width: {{ [l.forecast_share * 100, 100]|min }}%"></span>{% endif %}
+                <span class="now" style="width: {{ now_pct }}%"></span>
+            </div>
+            <div class="sub-line">
+                Teď {{ kc(l.actual) }} ({{ (l.share * 100)|round|int }} %)
+                {% if l.forecast is not none %}<span class="fc"> · prognóza {{ kc(l.forecast) }} ({{ (l.forecast_share * 100)|round|int }} %){% if l.forecast_share > 1 %} — <strong class="pos">překročíš</strong>{% endif %}</span>{% endif %}
+            </div>
+            <div class="sub-line">{{ l.note }}</div>
+        </div>
+        {% endfor %}
+        {% if supplier.vat_payer %}<div class="note">Limit 2 mil. pro registraci k DPH tě netýká — plátcem už jsi.</div>{% endif %}
+    </div>
+</section>
+
+<section class="card" style="margin-bottom:16px">
+    <h2>Odhad vs. zaplacené zálohy</h2>
+    <div class="table-wrap"><table>
+        <thead><tr><th scope="col"><span class="sr-only">Položka</span></th><th scope="col" class="n">Odhad za rok</th><th scope="col" class="n">Zaplaceno</th><th scope="col" class="n">Ještě nezaplacené zálohy</th><th scope="col" class="n">Doplatek / přeplatek</th></tr></thead>
+        <tbody>
+        {% for e in o.estimates %}
+        <tr>
+            <td class="label-col">{{ e.label }}<span class="sub-line">{{ e.note }}</span></td>
+            <td class="n">{{ kc(e.expected) }}</td>
+            <td class="n">{{ kc(e.paid) }}</td>
+            <td class="n">{{ kc(e.planned) }}</td>
+            <td class="n {{ 'pos' if e.remaining > 0 else 'neg' }}">{{ kc(e.remaining) }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table></div>
+    <div class="note">Počítá se skutečností k dnešku. Zálohy zapisuješ na stránce <a href="/zalohy">Zálohy</a>.</div>
+</section>
+
+<section class="card">
+    <h2>Příští rok ({{ o.year + 1 }})</h2>
+    <dl class="facts">
+        <dt>Záloha ČSSZ po přehledu za {{ o.year }}</dt><dd><strong>{{ kc(nxt.social_monthly) }}</strong> měsíčně — {{ nxt.social_note }}</dd>
+        <dt>Daň z příjmů</dt><dd>{{ nxt.dpfo_note }}</dd>
+        <dt>Zdravotní</dt><dd>{{ 'Zaměstnanec: zálohy se neplatí, jen doplatek po přehledu.' if o.settings.health_status == 'employee' else ('Student: zálohy se neplatí, jen doplatek po přehledu.' if not o.params.student_health_advances else 'Zálohy podle přehledu VZP.') }}</dd>
+    </dl>
+    <div class="note">Počítá z {{ 'prognózy (průměr celého roku)' if fc else 'skutečnosti' }}. Přesnou zálohu ti určí ČSSZ podle podaného přehledu.</div>
+</section>
+{% endblock %}

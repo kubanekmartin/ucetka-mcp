@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Výdaje {{ year }}{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Výdaje {{ year }}</h1>
+        <p>Přijaté faktury · {{ 'daňová evidence — do daně jdou zaplacené výdaje' if mode == 'actual' else 'výdajový paušál — výdaje slouží k odpočtu DPH' }}</p>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <form method="post" action="/vydaje/kniha" class="inline-form">
+            <input type="hidden" name="year" value="{{ year }}">
+            <button class="btn btn-secondary btn-sm" type="submit">Kniha příjmů a výdajů (PDF + CSV)</button>
+        </form>
+        <nav class="segmented" aria-label="Rok">
+            {% for y in years %}<a href="/vydaje?year={{ y }}" {% if y == year %}aria-current="page"{% endif %}>{{ y }}</a>{% endfor %}
+        </nav>
+    </div>
+</div>
+
+{% if exported %}
+<div class="alert alert-ok" role="status" style="margin-bottom:16px">
+    <p class="alert-title">Kniha vytvořena</p>
+    {% for p in exported %}<p class="num">{{ p }}</p>{% endfor %}
+</div>
+{% endif %}
+
+<section class="grid kpis kpis-compact" style="margin-bottom:16px">
+    <div class="card kpi">
+        <div class="label">Daňové výdaje zaplacené {{ year }}</div>
+        <div class="value">{{ kc(paid_cost) }}</div>
+        <div class="hint">{{ 'odečítají se od příjmů' if mode == 'actual' else 'při paušálu se do daně nepočítají' }}</div>
+    </div>
+    <div class="card kpi {{ 'is-bad' if unpaid and mode == 'actual' }}">
+        <div class="label">Bez data úhrady</div>
+        <div class="value">{{ unpaid|length }}</div>
+        <div class="hint">{{ 'do daně se nepočítají, dokud je neoznačíš' if mode == 'actual' else 'informativně' }}</div>
+    </div>
+</section>
+
+<section class="card card-flush">
+    <div class="table-wrap"><table>
+        <thead><tr>
+            <th scope="col">Doklad</th><th scope="col">Dodavatel</th><th scope="col">DUZP</th>
+            <th scope="col" class="n">Celkem</th><th scope="col" class="n">DPH</th><th scope="col" class="n">Do daně</th>
+            <th scope="col">Úhrada</th>
+        </tr></thead>
+        <tbody>
+        {% for row in rows %}{% set e = row.e %}
+        <tr>
+            <td class="num">{% if e.pdf_path %}<a href="/vydaj/{{ e.id }}.pdf" target="_blank" rel="noopener">{{ e.document_number }}</a>{% else %}{{ e.document_number }}{% endif %}<span class="sub-line">{{ e.id }}</span></td>
+            <td class="label-col">{{ e.supplier_name }}
+                <span class="sub-line">{% if e.reverse_charge %}reverse charge · {% endif %}{% if not e.tax_deductible %}nedaňový · {% endif %}{% if e.business_share < 100 %}podnikání {{ e.business_share }} % · {% endif %}{{ e.note or '' }}</span>
+            </td>
+            <td class="num" style="white-space:nowrap">{{ fmt_date(e.tax_point_date) }}</td>
+            <td class="n">{{ kc(e.total) }}</td>
+            <td class="n">{{ kc(e.vat_total) }}</td>
+            <td class="n">{{ kc(row.cost) }}</td>
+            <td>
+                {% if e.paid_date %}<span class="badge paid">{{ fmt_date(e.paid_date) }}</span>
+                {% else %}
+                <form method="post" action="/vydaje/zaplaceno" class="inline-form">
+                    <input type="hidden" name="expense_id" value="{{ e.id }}">
+                    <input type="hidden" name="year" value="{{ year }}">
+                    <label for="ep-{{ e.id }}" class="sr-only">Datum úhrady {{ e.document_number }}</label>
+                    <input id="ep-{{ e.id }}" type="date" name="paid_on" value="{{ e.issue_date.isoformat() }}">
+                    <button class="btn btn-secondary btn-sm" type="submit">Zaplaceno</button>
+                </form>
+                {% endif %}
+            </td>
+        </tr>
+        {% else %}<tr><td colspan="7" class="muted">Žádné přijaté faktury.</td></tr>{% endfor %}
+        </tbody>
+    </table></div>
+</section>
+<p class="note">„Do daně“ = výdaj pro daň z příjmů: u plátce bez odpočteného DPH, u reverse charge základ, krácený podílem podnikání. Nové doklady ukládej do Přijaté faktury/RR_MM_prijate, nebo je zadej v chatu (add_expense).</p>
+{% endblock %}

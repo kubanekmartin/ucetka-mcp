@@ -1,0 +1,19 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    # macOS like the target users; WeasyPrint needs pango from Homebrew.
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pango
+        run: brew install pango
+      - uses: astral-sh/setup-uv@v6
+      - name: Install dependencies
+        run: uv sync --locked
+      - name: Run tests
+        run: DYLD_FALLBACK_LIBRARY_PATH="$(brew --prefix)/lib" uv run pytest -q

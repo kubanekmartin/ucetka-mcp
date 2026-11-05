@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}DPH {{ o.year }}{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>DPH {{ o.year }}</h1>
+        <p>{{ 'Čtvrtletní' if o.settings.vat_period == 'quarterly' else 'Měsíční' }} plátce · přiznání a kontrolní hlášení do 25. dne po skončení období</p>
+    </div>
+    <nav class="segmented" aria-label="Rok">
+        {% for y in years %}<a href="/dph?year={{ y }}" {% if y == o.year %}aria-current="page"{% endif %}>{{ y }}</a>{% endfor %}
+    </nav>
+</div>
+
+{% if exported %}
+<div class="alert alert-ok" role="status" style="margin-bottom:16px">
+    <p class="alert-title">XML pro EPO vytvořeno</p>
+    {% for p in exported %}<p class="num">{{ p }}</p>{% endfor %}
+    <p>Nahraj na Moje daně → EPO → Načíst soubor → Kontrola → Odeslat.</p>
+</div>
+{% endif %}
+
+<section class="grid kpis kpis-compact" style="margin-bottom:16px">
+    {% set nv = next_vat %}
+    <div class="card kpi">
+        <div class="label">{{ nv.label }} — zaplatit do {{ fmt_date(nv.due) }}</div>
+        <div class="value">{{ kc(nv.result) }}</div>
+        <div class="hint">výstup {{ kc(nv.output_vat) }} − vstup {{ kc(nv.input_vat) }}</div>
+    </div>
+</section>
+
+<section class="card">
+    <h2>Po obdobích</h2>
+    <div class="table-wrap"><table>
+        <thead><tr><th scope="col">Období</th><th scope="col" class="n">Výstup</th><th scope="col" class="n">Vstup</th><th scope="col" class="n">K úhradě</th><th scope="col" class="n">Termín</th><th scope="col"><span class="sr-only">Export</span></th></tr></thead>
+        <tbody>
+        {% for v in o.vat_periods %}
+        <tr>
+            <td>{{ v.label }}</td><td class="n">{{ kc(v.output_vat) }}</td><td class="n">{{ kc(v.input_vat) }}</td>
+            <td class="n"><strong>{{ kc(v.result) }}</strong></td><td class="n muted">{{ fmt_date(v.due) }}</td>
+            <td class="n">
+                {% if o.settings.vat_period == 'quarterly' and v.end < o.today %}
+                <form method="post" action="/dph/export" class="inline-form">
+                    <input type="hidden" name="year" value="{{ o.year }}">
+                    <input type="hidden" name="quarter" value="{{ v.label[1:] }}">
+                    <button class="btn btn-secondary btn-sm" type="submit">XML pro EPO</button>
+                </form>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table></div>
+    <div class="note">Výstup podle DUZP vydaných faktur, vstup z přijatých faktur v evidenci (+ samovyměření u zahraničních služeb). XML obsahuje přiznání, kontrolní hlášení a případně souhrnné hlášení — nic se neodesílá.</div>
+</section>
+{% endblock %}

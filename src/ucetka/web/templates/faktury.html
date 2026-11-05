@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block title %}Faktury{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Faktury</h1>
+        <p>{{ rows|length }} v evidenci · nezaplaceno {{ unpaid_count }} za {{ fmt_czk(unpaid_total) }}</p>
+    </div>
+    <a class="btn" href="/">Nová faktura</a>
+</div>
+
+{% if just_paid %}
+<div class="alert alert-ok" role="status" style="margin-bottom:16px">Faktura {{ just_paid }} je označená jako zaplacená.</div>
+{% endif %}
+
+{% include "_reminders.html" %}
+
+<section class="grid kpis" style="margin-bottom:24px">
+    <div class="card kpi">
+        <div class="label">Nezaplaceno (s DPH)</div>
+        <div class="value">{{ fmt_czk(unpaid_total) }}</div>
+        <div class="hint">{{ unpaid_count }} {{ 'faktura' if unpaid_count == 1 else ('faktury' if 2 <= unpaid_count <= 4 else 'faktur') }}</div>
+    </div>
+    <div class="card kpi {{ 'is-bad' if reminders.overdue }}">
+        <div class="label">Po splatnosti (s DPH)</div>
+        <div class="value">{{ fmt_czk(reminders.overdue_total) }}</div>
+        <div class="hint">{{ reminders.overdue|length }} po splatnosti · {{ reminders.soon|length }} splatné do 7 dnů</div>
+    </div>
+    <div class="card kpi">
+        <div class="label">Přijato {{ today_date.year }} (bez DPH)</div>
+        <div class="value">{{ fmt_czk(paid_this_year) }}</div>
+        <div class="hint">podle data úhrady</div>
+    </div>
+</section>
+
+<section class="card card-flush" aria-labelledby="seznam">
+    <h2 id="seznam" class="sr-only">Seznam faktur</h2>
+    <div class="toolbar" role="search">
+        <div class="search">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="7" cy="7" r="4.75"/><path d="m10.5 10.5 3 3" stroke-linecap="round"/></svg>
+            <label for="q" class="sr-only">Hledat podle čísla nebo odběratele</label>
+            <input id="q" type="search" placeholder="Hledat číslo nebo odběratele" autocomplete="off">
+        </div>
+        <label for="f-state" class="sr-only">Stav</label>
+        <select id="f-state">
+            <option value="">Všechny stavy</option>
+            <option value="unpaid">Nezaplacené</option>
+            <option value="overdue">Po splatnosti</option>
+            <option value="paid">Zaplacené</option>
+            <option value="cancelled">Stornované</option>
+        </select>
+        <label for="f-period" class="sr-only">Období vystavení</label>
+        <select id="f-period">
+            <option value="">Celé období</option>
+            <optgroup label="Rok">
+                {% for y in years %}<option value="{{ y }}">{{ y }}</option>{% endfor %}
+            </optgroup>
+            <optgroup label="Měsíc">
+                {% for m in months %}<option value="{{ m }}">{{ m[5:] }}/{{ m[:4] }}</option>{% endfor %}
+            </optgroup>
+        </select>
+        <span class="result-count" id="count" aria-live="polite"></span>
+    </div>
+    <div class="table-wrap">
+        <table class="inv-table">
+            <thead>
+                <tr>
+                    <th scope="col">Číslo</th>
+                    <th scope="col">Odběratel</th>
+                    <th scope="col">Vystaveno</th>
+                    <th scope="col">DUZP</th>
+                    <th scope="col">Splatnost</th>
+                    <th scope="col" class="n">Bez DPH</th>
+                    <th scope="col" class="n">S DPH (Kč)</th>
+                    <th scope="col">Stav</th>
+                    <th scope="col"><span class="sr-only">Akce</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                {% set r = row.r %}
+                {% set inv = r.invoice %}
+                <tr class="{{ 'is-cancelled' if row.state == 'cancelled' }}"
+                    data-state="{{ row.state }}"
+                    data-period="{{ inv.issue_date.strftime('%Y-%m') }}"
+                    data-q="{{ (inv.number ~ ' ' ~ inv.customer.name)|lower }}"
+                    data-net="{{ row.net }}" data-gross="{{ row.gross }}">
+                    <td class="c-num num"><a href="/faktura/{{ inv.number }}.pdf" target="_blank" rel="noopener" title="Otevřít PDF">{{ inv.number }}</a></td>
+                    <td class="c-cust">{{ inv.customer.name }}</td>
+                    <td class="c-date num" data-label="Vystaveno">{{ fmt_date(inv.issue_date) }}</td>
+                    <td class="c-date num" data-label="DUZP">{{ fmt_date(inv.tax_point_date) }}</td>
+                    <td class="c-date num" data-label="Splatnost">{{ fmt_date(inv.due_date) }}</td>
+                    <td class="c-net n money">{{ fmt_czk(row.net) }}</td>
+                    <td class="c-gross n money">
+                        {{ fmt_czk(row.gross) }}
+                        {% if inv.is_foreign_currency %}<span class="sub-line">{{ fmt_cur(inv.total_gross, inv.currency_symbol) }}</span>{% endif %}
+                    </td>
+                    <td class="c-state"><span class="badge {{ row.state }}">{{ row.label }}</span>{% if row.state == 'paid' and r.paid_date %}<span class="sub-line num">{{ fmt_date(r.paid_date) }}</span>{% endif %}</td>
+                    <td class="c-act n">
+                        {% if row.state in ('issued', 'overdue') %}
+                        <details class="pay">
+                            <summary class="btn btn-secondary btn-sm">Zaplaceno…</summary>
+                            <form method="post" action="/faktury/zaplaceno" class="pay-pop">
+                                <input type="hidden" name="number" value="{{ inv.number }}">
+                                <label for="paid-{{ inv.number }}">Datum úhrady {{ inv.number }}</label>
+                                <input id="paid-{{ inv.number }}" type="date" name="paid_on" value="{{ today }}" required>
+                                <button class="btn btn-sm" type="submit">Označit zaplaceno</button>
+                            </form>
+                        </details>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="5">Součet zobrazených <span class="muted" style="font-weight:400">(bez stornovaných)</span></td>
+                    <td class="c-net n" id="sum-net"></td>
+                    <td class="c-gross n" id="sum-gross"></td>
+                    <td></td><td></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    <div class="empty" id="empty" hidden>{{ 'Žádná faktura neodpovídá filtru.' if rows else 'V evidenci zatím nejsou žádné faktury.' }}</div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(() => {
+    const rows = [...document.querySelectorAll(".inv-table tbody tr")];
+    const q = document.getElementById("q");
+    const state = document.getElementById("f-state");
+    const period = document.getElementById("f-period");
+    const money = new Intl.NumberFormat("cs-CZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const kc = v => money.format(v).replace(/\s/g, " ") + " Kč";
+    const plural = n => n === 1 ? "faktura" : (n >= 2 && n <= 4 ? "faktury" : "faktur");
+
+    function matches(tr) {
+        const s = state.value, st = tr.dataset.state;
+        if (s === "unpaid" && st !== "issued" && st !== "overdue") return false;
+        if (s && s !== "unpaid" && st !== s) return false;
+        if (period.value && !tr.dataset.period.startsWith(period.value)) return false;
+        const term = q.value.trim().toLowerCase();
+        return !term || tr.dataset.q.includes(term);
+    }
+
+    function apply() {
+        let n = 0, net = 0, gross = 0;
+        for (const tr of rows) {
+            const show = matches(tr);
+            tr.hidden = !show;
+            if (!show) continue;
+            n++;
+            if (tr.dataset.state !== "cancelled") {
+                net += parseFloat(tr.dataset.net);
+                gross += parseFloat(tr.dataset.gross);
+            }
+        }
+        document.getElementById("sum-net").textContent = kc(net);
+        document.getElementById("sum-gross").textContent = kc(gross);
+        document.getElementById("count").textContent = `${n} ${plural(n)}`;
+        document.getElementById("empty").hidden = n > 0;
+        document.querySelector(".inv-table tfoot").hidden = n === 0;
+    }
+
+    [q, state, period].forEach(el => el.addEventListener("input", apply));
+    document.addEventListener("click", e => {
+        for (const d of document.querySelectorAll("details.pay[open]")) if (!d.contains(e.target)) d.open = false;
+    });
+    document.addEventListener("keydown", e => {
+        if (e.key !== "Escape") return;
+        const d = document.querySelector("details.pay[open]");
+        if (d) { d.open = false; d.querySelector("summary").focus(); }
+    });
+    apply();
+})();
+</script>
+{% endblock %}

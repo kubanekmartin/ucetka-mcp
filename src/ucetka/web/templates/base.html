@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}{% endblock %} · ucetka</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400..700&display=swap">
+    <link rel="stylesheet" href="/static/app.css">
+    {% block head %}{% endblock %}
+</head>
+<body>
+<a class="skip" href="#obsah">Přeskočit na obsah</a>
+<div class="shell">
+    <header class="sidebar">
+        <a class="brand" href="/prehled"><span class="brand-mark" aria-hidden="true">F</span>ucetka</a>
+        <nav class="nav" aria-label="Hlavní navigace">
+            <a href="/prehled" {% if active == 'overview' %}aria-current="page"{% endif %}>
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="2" y="2" width="5" height="6" rx="1.2"/><rect x="9" y="2" width="5" height="3.5" rx="1.2"/><rect x="2" y="10" width="5" height="4" rx="1.2"/><rect x="9" y="7.5" width="5" height="6.5" rx="1.2"/></svg>
+                Přehled
+            </a>
+            <a href="/faktury" {% if active == 'invoices' %}aria-current="page"{% endif %}>
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 1.75h5.5L12.25 4.5v9.75H4z" stroke-linejoin="round"/><path d="M6 7h4M6 9.5h4M6 12h2"/></svg>
+                Faktury
+                {% if nav_overdue %}<span class="count" title="Po splatnosti">{{ nav_overdue }}<span class="sr-only"> po splatnosti</span></span>{% endif %}
+            </a>
+            <a href="/vydaje" {% if active == 'expenses' %}aria-current="page"{% endif %}>
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3 2.5h10v11l-2-1.25-1.5 1.25L8 12.25 6.5 13.5 5 12.25 3 13.5z" stroke-linejoin="round"/><path d="M5.5 6h5M5.5 8.5h3"/></svg>
+                Výdaje
+            </a>
+            <a href="/dane" {% if active == 'taxes' %}aria-current="page"{% endif %}>
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M2.5 13.5h11"/><path d="M4 11V8M8 11V4.5M12 11V6.5"/></svg>
+                Daně a prognóza
+            </a>
+            <a href="/zalohy" {% if active == 'advances' %}aria-current="page"{% endif %}>
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.5h12M5.5 1.75v2.5M10.5 1.75v2.5"/></svg>
+                Zálohy
+            </a>
+            <a href="/dph" {% if active == 'vat' %}aria-current="page"{% endif %}>
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5" cy="5" r="1.75"/><circle cx="11" cy="11" r="1.75"/><path d="M12.5 3.5l-9 9"/></svg>
+                DPH
+            </a>
+            <a href="/" {% if active == 'new' %}aria-current="page"{% endif %}>
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="8" cy="8" r="6.25"/><path d="M8 5v6M5 8h6"/></svg>
+                Nová faktura
+            </a>
+        </nav>
+        <label class="fc-switch">
+            <input type="checkbox" id="fc-toggle">
+            <span class="track" aria-hidden="true"></span>
+            <span>Prognóza do konce roku</span>
+        </label>
+        <div class="sidebar-foot"><strong>{{ supplier.name }}</strong>{% if supplier.ico %}IČO {{ supplier.ico }}{% endif %}</div>
+    </header>
+    <main class="main" id="obsah">
+        <div class="page {% block page_class %}{% endblock %}">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+</div>
+<script>
+(() => {
+    const box = document.getElementById("fc-toggle");
+    let on = false;
+    try { on = localStorage.getItem("prognoza") === "1"; } catch {}
+    const apply = () => {
+        document.body.classList.toggle("show-fc", on);
+        box.checked = on;
+        document.dispatchEvent(new CustomEvent("fc-toggle", { detail: on }));
+    };
+    box.addEventListener("change", () => {
+        on = box.checked;
+        try { localStorage.setItem("prognoza", on ? "1" : "0"); } catch {}
+        apply();
+    });
+    window.addEventListener("DOMContentLoaded", apply);
+})();
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

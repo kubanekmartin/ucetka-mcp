@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+{#- Cizoměnový doklad: `<XCurr>` (měna faktury) + `<X>` (Kč); pořadí podle XSD se u LegalMonetaryTotal liší. -#}
+{% macro czk_pair(name, value, value_czk) -%}
+{% if inv.is_foreign_currency %}<{{ name }}Curr>{{ '%.2f'|format(value) }}</{{ name }}Curr>{% endif %}<{{ name }}>{{ '%.2f'|format(value_czk) }}</{{ name }}>
+{%- endmacro %}
+{% macro czk_pair_after(name, value, value_czk) -%}
+<{{ name }}>{{ '%.2f'|format(value_czk) }}</{{ name }}>{% if inv.is_foreign_currency %}<{{ name }}Curr>{{ '%.2f'|format(value) }}</{{ name }}Curr>{% endif %}
+{%- endmacro %}
+{% macro amt(name, value) %}{{ czk_pair(name, value, inv.to_czk(value)) }}{% endmacro %}
+<Invoice xmlns="http://isdoc.cz/namespace/2013" version="6.0.2">
+    <DocumentType>{{ 2 if inv.is_credit_note else 1 }}</DocumentType>
+    <ID>{{ inv.number | e }}</ID>
+    <UUID>{{ uuid }}</UUID>
+    <IssuingSystem>ucetka</IssuingSystem>
+    <IssueDate>{{ inv.issue_date.isoformat() }}</IssueDate>
+    <TaxPointDate>{{ inv.tax_point_date.isoformat() }}</TaxPointDate>
+    <VATApplicable>{{ 'true' if inv.supplier.vat_payer else 'false' }}</VATApplicable>
+    <ElectronicPossibilityAgreementReference></ElectronicPossibilityAgreementReference>
+    {% set notes = inv.legal_notes + (['Důvod opravy: ' ~ inv.correction_reason] if inv.is_credit_note else []) + ([inv.note] if inv.note else []) %}
+    {% if notes %}<Note>{{ notes | join(' ') | e }}</Note>{% endif %}
+    <LocalCurrencyCode>CZK</LocalCurrencyCode>
+    {% if inv.is_foreign_currency %}<ForeignCurrencyCode>{{ inv.currency }}</ForeignCurrencyCode>{% endif %}
+    <CurrRate>{{ inv.exchange_rate or 1 }}</CurrRate>
+    <RefCurrRate>{{ inv.exchange_rate_amount }}</RefCurrRate>
+
+    <AccountingSupplierParty>
+        <Party>
+            <PartyIdentification>
+                <ID>{{ inv.supplier.ico or '' }}</ID>
+            </PartyIdentification>
+            <PartyName>
+                <Name>{{ inv.supplier.name | e }}</Name>
+            </PartyName>
+            <PostalAddress>
+                <StreetName>{{ inv.supplier.address.street_name | e }}</StreetName>
+                <BuildingNumber>{{ inv.supplier.address.building | e }}</BuildingNumber>
+                <CityName>{{ inv.supplier.address.city | e }}</CityName>
+                <PostalZone>{{ inv.supplier.address.zip }}</PostalZone>
+                <Country>
+                    <IdentificationCode>{{ inv.supplier.address.country_code }}</IdentificationCode>
+                    <Name>{{ inv.supplier.address.country | e }}</Name>
+                </Country>
+            </PostalAddress>
+            {% if inv.supplier.dic %}
+            <PartyTaxScheme>
+                <CompanyID>{{ inv.supplier.dic }}</CompanyID>
+                <TaxScheme>VAT</TaxScheme>
+            </PartyTaxScheme>
+            {% endif %}
+        </Party>
+    </AccountingSupplierParty>
+
+    <AccountingCustomerParty>
+        <Party>
+            <PartyIdentification>
+                <ID>{{ inv.customer.ico or '' }}</ID>
+            </PartyIdentification>
+            <PartyName>
+                <Name>{{ inv.customer.name | e }}</Name>
+            </PartyName>
+            <PostalAddress>
+                <StreetName>{{ inv.customer.address.street_name | e }}</StreetName>
+                <BuildingNumber>{{ inv.customer.address.building | e }}</BuildingNumber>
+                <CityName>{{ inv.customer.address.city | e }}</CityName>
+                <PostalZone>{{ inv.customer.address.zip }}</PostalZone>
+                <Country>
+                    <IdentificationCode>{{ inv.customer.address.country_code }}</IdentificationCode>
+                    <Name>{{ inv.customer.address.country | e }}</Name>
+                </Country>
+            </PostalAddress>
+            {% if inv.customer.dic %}
+            <PartyTaxScheme>
+                <CompanyID>{{ inv.customer.dic }}</CompanyID>
+                <TaxScheme>VAT</TaxScheme>
+            </PartyTaxScheme>
+            {% endif %}
+        </Party>
+    </AccountingCustomerParty>
+
+    {% if inv.is_credit_note %}
+    <OriginalDocumentReferences>
+        <OriginalDocumentReference id="original">
+            <ID>{{ inv.original.number | e }}</ID>
+            <IssueDate>{{ inv.original.issue_date.isoformat() }}</IssueDate>
+        </OriginalDocumentReference>
+    </OriginalDocumentReferences>
+    {% endif %}
+    <InvoiceLines>
+        {% for line in inv.lines %}
+        <InvoiceLine>
+            <ID>{{ loop.index }}</ID>
+            <InvoicedQuantity unitCode="{{ line.unit | e }}">{{ line.quantity }}</InvoicedQuantity>
+            {{ amt('LineExtensionAmount', line.net_total) }}
+            {{ amt('LineExtensionAmountTaxInclusive', line.gross_total) }}
+            <LineExtensionTaxAmount>{{ '%.2f'|format(inv.to_czk(line.vat_total)) }}</LineExtensionTaxAmount>
+            <UnitPrice>{{ '%.4f'|format(unit_czk(line.unit_price_net)) }}</UnitPrice>
+            <UnitPriceTaxInclusive>{{ '%.4f'|format(unit_czk(line.unit_price_net) * (1 + line.vat_rate / 100)) }}</UnitPriceTaxInclusive>
+            <ClassifiedTaxCategory>
+                <Percent>{{ line.vat_rate }}</Percent>
+                <VATCalculationMethod>0</VATCalculationMethod>
+                <VATApplicable>{{ 'true' if inv.supplier.vat_payer else 'false' }}</VATApplicable>
+            </ClassifiedTaxCategory>
+            <Item>
+                <Description>{{ line.description | e }}</Description>
+            </Item>
+        </InvoiceLine>
+        {% endfor %}
+    </InvoiceLines>
+
+    <TaxTotal>
+        {% for row in inv.vat_breakdown() %}
+        <TaxSubTotal>
+            {{ czk_pair('TaxableAmount', row.base, row.base_czk) }}
+            {{ czk_pair('TaxAmount', row.vat, row.vat_czk) }}
+            {{ czk_pair('TaxInclusiveAmount', row.total, row.base_czk + row.vat_czk) }}
+            {{ czk_pair('AlreadyClaimedTaxableAmount', 0, 0) }}
+            {{ czk_pair('AlreadyClaimedTaxAmount', 0, 0) }}
+            {{ czk_pair('AlreadyClaimedTaxInclusiveAmount', 0, 0) }}
+            {{ czk_pair('DifferenceTaxableAmount', row.base, row.base_czk) }}
+            {{ czk_pair('DifferenceTaxAmount', row.vat, row.vat_czk) }}
+            {{ czk_pair('DifferenceTaxInclusiveAmount', row.total, row.base_czk + row.vat_czk) }}
+            <TaxCategory>
+                <Percent>{{ row.rate }}</Percent>
+                <VATApplicable>{{ 'true' if inv.supplier.vat_payer else 'false' }}</VATApplicable>
+            </TaxCategory>
+        </TaxSubTotal>
+        {% endfor %}
+        {{ czk_pair('TaxAmount', inv.total_vat, inv.total_vat_czk) }}
+    </TaxTotal>
+
+    <LegalMonetaryTotal>
+        {{ czk_pair_after('TaxExclusiveAmount', inv.total_net, inv.total_net_czk) }}
+        {{ czk_pair_after('TaxInclusiveAmount', inv.total_gross, gross_czk) }}
+        {{ czk_pair_after('AlreadyClaimedTaxExclusiveAmount', 0, 0) }}
+        {{ czk_pair_after('AlreadyClaimedTaxInclusiveAmount', 0, 0) }}
+        {{ czk_pair_after('DifferenceTaxExclusiveAmount', inv.total_net, inv.total_net_czk) }}
+        {{ czk_pair_after('DifferenceTaxInclusiveAmount', inv.total_gross, gross_czk) }}
+        {{ czk_pair_after('PayableRoundingAmount', 0, 0) }}
+        {{ czk_pair_after('PaidDepositsAmount', 0, 0) }}
+        {{ czk_pair_after('PayableAmount', inv.total_gross, gross_czk) }}
+    </LegalMonetaryTotal>
+
+    <PaymentMeans>
+        <Payment>
+            <PaidAmount>{{ '%.2f'|format(inv.total_gross) }}</PaidAmount>
+            <PaymentMeansCode>42</PaymentMeansCode>
+            <Details>
+                <PaymentDueDate>{{ inv.due_date.isoformat() }}</PaymentDueDate>
+                <ID>{{ inv.payment.bank_account.prefix + '-' if inv.payment.bank_account.prefix else '' }}{{ inv.payment.bank_account.number }}</ID>
+                <BankCode>{{ inv.payment.bank_account.bank_code }}</BankCode>
+                <Name>{{ bank_name | e }}</Name>
+                <IBAN>{{ iban }}</IBAN>
+                <BIC>{{ bic or '' }}</BIC>
+                <VariableSymbol>{{ inv.payment.variable_symbol }}</VariableSymbol>
+            </Details>
+        </Payment>
+    </PaymentMeans>
+</Invoice>

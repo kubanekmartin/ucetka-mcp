@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="windows-1250"?>
+<dat:dataPack
+    xmlns:dat="http://www.stormware.cz/schema/version_2/data.xsd"
+    xmlns:inv="http://www.stormware.cz/schema/version_2/invoice.xsd"
+    xmlns:typ="http://www.stormware.cz/schema/version_2/type.xsd"
+    id="dp_{{ inv.number }}"
+    version="2.0"
+    ico="{{ inv.supplier.ico or '' }}"
+    application="{{ application }}"
+    note="Invoice {{ inv.number }}">
+  <dat:dataPackItem id="item_{{ inv.number }}" version="2.0">
+    <inv:invoice version="2.0">
+      <inv:invoiceHeader>
+        <inv:invoiceType>issuedInvoice</inv:invoiceType>
+        <inv:number>
+          <typ:numberRequested>{{ inv.number }}</typ:numberRequested>
+        </inv:number>
+        <inv:symVar>{{ inv.payment.variable_symbol }}</inv:symVar>
+        <inv:date>{{ inv.issue_date.isoformat() }}</inv:date>
+        <inv:dateTax>{{ inv.tax_point_date.isoformat() }}</inv:dateTax>
+        <inv:dateDue>{{ inv.due_date.isoformat() }}</inv:dateDue>
+        <inv:classificationVAT>
+          {% if eu_classification %}
+          <typ:ids>{{ eu_classification }}</typ:ids>
+          {% else %}
+          <typ:classificationVATType>{{ 'inland' if inv.supplier.vat_payer else 'nonSubsume' }}</typ:classificationVATType>
+          {% endif %}
+        </inv:classificationVAT>
+        <inv:text>Faktura {{ inv.number }}</inv:text>
+        <inv:partnerIdentity>
+          <typ:address>
+            <typ:company>{{ inv.customer.name | e }}</typ:company>
+            <typ:city>{{ inv.customer.address.city | e }}</typ:city>
+            <typ:street>{{ inv.customer.address.street | e }}</typ:street>
+            <typ:zip>{{ inv.customer.address.zip }}</typ:zip>
+            <typ:country>
+              <typ:ids>{{ inv.customer.address.country_code }}</typ:ids>
+            </typ:country>
+            {% if inv.customer.ico %}<typ:ico>{{ inv.customer.ico }}</typ:ico>{% endif %}
+            {% if inv.customer.dic %}<typ:dic>{{ inv.customer.dic }}</typ:dic>{% endif %}
+          </typ:address>
+        </inv:partnerIdentity>
+        <inv:myIdentity>
+          <typ:address>
+            <typ:company>{{ inv.supplier.name | e }}</typ:company>
+            <typ:city>{{ inv.supplier.address.city | e }}</typ:city>
+            <typ:street>{{ inv.supplier.address.street | e }}</typ:street>
+            <typ:zip>{{ inv.supplier.address.zip }}</typ:zip>
+            {% if inv.supplier.ico %}<typ:ico>{{ inv.supplier.ico }}</typ:ico>{% endif %}
+            {% if inv.supplier.dic %}<typ:dic>{{ inv.supplier.dic }}</typ:dic>{% endif %}
+          </typ:address>
+        </inv:myIdentity>
+        <inv:paymentType>
+          <typ:paymentType>draft</typ:paymentType>
+        </inv:paymentType>
+        <inv:account>
+          <typ:accountNo>{{ inv.payment.bank_account.prefix + '-' if inv.payment.bank_account.prefix else '' }}{{ inv.payment.bank_account.number }}</typ:accountNo>
+          <typ:bankCode>{{ inv.payment.bank_account.bank_code }}</typ:bankCode>
+        </inv:account>
+      </inv:invoiceHeader>
+      <inv:invoiceDetail>
+        {% for line in inv.lines %}
+        <inv:invoiceItem>
+          <inv:text>{{ line.description | e }}</inv:text>
+          <inv:quantity>{{ line.quantity }}</inv:quantity>
+          <inv:unit>{{ line.unit | e }}</inv:unit>
+          <inv:rateVAT>{{ rate_to_pohoda(line.vat_rate) }}</inv:rateVAT>
+          {% set item_block = 'foreignCurrency' if inv.is_foreign_currency else 'homeCurrency' %}
+          <inv:{{ item_block }}>
+            <typ:unitPrice>{{ '%.2f'|format(line.unit_price_net) }}</typ:unitPrice>
+            <typ:price>{{ '%.2f'|format(line.net_total) }}</typ:price>
+            <typ:priceVAT>{{ '%.2f'|format(line.vat_total) }}</typ:priceVAT>
+          </inv:{{ item_block }}>
+        </inv:invoiceItem>
+        {% endfor %}
+      </inv:invoiceDetail>
+      <inv:invoiceSummary>
+        <inv:homeCurrency>
+          <typ:priceNone>{{ '%.2f'|format(none_base) }}</typ:priceNone>
+          <typ:priceLow>{{ '%.2f'|format(low_base) }}</typ:priceLow>
+          <typ:priceLowVAT>{{ '%.2f'|format(low_vat) }}</typ:priceLowVAT>
+          <typ:priceLowSum>{{ '%.2f'|format(low_total) }}</typ:priceLowSum>
+          <typ:priceHigh>{{ '%.2f'|format(high_base) }}</typ:priceHigh>
+          <typ:priceHighVAT>{{ '%.2f'|format(high_vat) }}</typ:priceHighVAT>
+          <typ:priceHighSum>{{ '%.2f'|format(high_total) }}</typ:priceHighSum>
+          <typ:round>
+            <typ:priceRound>0</typ:priceRound>
+          </typ:round>
+        </inv:homeCurrency>
+        {% if inv.is_foreign_currency %}
+        <inv:foreignCurrency>
+          <typ:currency>
+            <typ:ids>{{ inv.currency }}</typ:ids>
+          </typ:currency>
+          <typ:rate>{{ inv.exchange_rate }}</typ:rate>
+          <typ:amount>{{ inv.exchange_rate_amount }}</typ:amount>
+          <typ:priceSum>{{ '%.2f'|format(inv.total_gross) }}</typ:priceSum>
+        </inv:foreignCurrency>
+        {% endif %}
+      </inv:invoiceSummary>
+    </inv:invoice>
+  </dat:dataPackItem>
+</dat:dataPack>

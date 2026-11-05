@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>Kniha příjmů a výdajů {{ book.year }}</title>
+<style>
+@page { size: A4 landscape; margin: 14mm 12mm; @bottom-right { content: "strana " counter(page) " / " counter(pages); font-size: 7.5pt; color: #64748b; } }
+html { font-family: -apple-system, "Helvetica Neue", "Inter", sans-serif; font-size: 8.5pt; color: #0f172a; font-variant-numeric: tabular-nums; }
+h1 { font-size: 15pt; margin: 0 0 1mm; letter-spacing: -0.3pt; }
+.meta { color: #64748b; margin-bottom: 5mm; }
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; font-size: 7pt; text-transform: uppercase; letter-spacing: 0.6pt; color: #3730a3; background: #eef2ff; padding: 2mm 1.5mm; }
+td { padding: 1.6mm 1.5mm; border-bottom: 0.4pt solid #e2e8f0; vertical-align: top; }
+.n { text-align: right; white-space: nowrap; }
+tr.vydaj td.kind { color: #b45309; }
+tr.prijem td.kind { color: #047857; }
+tr.nedanovy td { color: #94a3b8; }
+.sum { margin-top: 6mm; width: 45%; margin-left: auto; }
+.sum td { border: 0; padding: 1.2mm 1.5mm; }
+.sum tr.total td { border-top: 0.8pt solid #0f172a; font-weight: 700; font-size: 10pt; }
+.note { margin-top: 4mm; color: #64748b; font-size: 7.5pt; }
+</style>
+</head>
+<body>
+<h1>Kniha příjmů a výdajů {{ book.year }}</h1>
+<div class="meta">{{ supplier.name }}{% if supplier.ico %} · IČO {{ supplier.ico }}{% endif %}{% if supplier.dic %} · DIČ {{ supplier.dic }}{% endif %} · daňová evidence podle data úhrady · vytvořeno {{ fmt_date(today) }}</div>
+<table>
+    <thead><tr>
+        <th>Úhrada</th><th>Doklad</th><th>Partner</th><th>Předmět</th><th>Typ</th>
+        <th class="n">Celkem vč. DPH</th><th class="n">DPH</th><th class="n">Základ pro DZP</th><th class="n">Podíl</th>
+    </tr></thead>
+    <tbody>
+    {% for r in book.rows %}
+    <tr class="{{ 'prijem' if r.kind == 'příjem' else 'vydaj' }}{{ ' nedanovy' if not r.deductible }}">
+        <td>{{ fmt_date(r.paid) }}</td><td>{{ r.document }}</td><td>{{ r.partner }}</td><td>{{ r.subject }}</td>
+        <td class="kind">{{ r.kind }}{% if not r.deductible %} (nedaňový){% endif %}</td>
+        <td class="n">{{ money(r.total) }}</td><td class="n">{{ money(r.vat) }}</td><td class="n">{{ money(r.tax_amount) }}</td>
+        <td class="n">{{ r.share }} %</td>
+    </tr>
+    {% else %}<tr><td colspan="9">Žádné zaplacené doklady.</td></tr>{% endfor %}
+    </tbody>
+</table>
+<table class="sum">
+    <tr><td>Příjmy (bez DPH)</td><td class="n">{{ money(book.income) }} Kč</td></tr>
+    <tr><td>Daňové výdaje</td><td class="n">{{ money(book.deductible_expenses) }} Kč</td></tr>
+    <tr><td>Nedaňové výdaje (informativně)</td><td class="n">{{ money(book.non_deductible_expenses) }} Kč</td></tr>
+    <tr class="total"><td>Rozdíl příjmů a výdajů</td><td class="n">{{ money(book.difference) }} Kč</td></tr>
+</table>
+<div class="note">Základ pro daň z příjmů: u plátce DPH bez odpočteného DPH; u reverse charge jen základ; podíl podnikání krátí výdaj. Nezaplacené doklady v knize nejsou. Odpisy majetku a cestovní náhrady nejsou zahrnuté.</div>
+</body>
+</html>

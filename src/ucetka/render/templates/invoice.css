@@ -1,0 +1,283 @@
+/* ucetka — varianta „Indigo“ (zvolena 10/2026) */
+
+@page {
+    size: A4;
+    margin: 18mm 18mm 20mm 18mm;
+
+    @bottom-left  { content: element(footerLeft); }
+    @bottom-right { content: element(footerRight); }
+}
+
+:root {
+    --ink: #0f172a;          /* slate-900 */
+    --ink-soft: #334155;     /* slate-700 */
+    --muted: #64748b;        /* slate-500 */
+    --hairline: #e2e8f0;     /* slate-200 */
+    --bg-soft: #f8fafc;      /* slate-50 */
+    --accent: #4f46e5;       /* indigo-600 */
+    --accent-soft: #eef2ff;  /* indigo-50 */
+    --accent-ink: #3730a3;   /* indigo-800 */
+}
+
+html {
+    font-family: -apple-system, "Helvetica Neue", "Inter", "Segoe UI", system-ui, sans-serif;
+    font-size: 9.5pt;
+    color: var(--ink);
+    line-height: 1.45;
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+}
+
+body { margin: 0; }
+
+/* footer ----------------------------------------------------------- */
+.footer-left  { position: running(footerLeft);  font-size: 8pt; color: var(--muted); }
+.footer-right { position: running(footerRight); font-size: 8pt; color: var(--muted); }
+
+/* header bar with accent ------------------------------------------- */
+.accent-bar {
+    height: 6pt;
+    border-radius: 3pt;
+    background: linear-gradient(90deg, #4f46e5, #06b6d4);
+    margin-bottom: 7mm;
+}
+
+.head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 7mm;
+}
+.head .doc-label {
+    font-size: 8.5pt;
+    letter-spacing: 1.4pt;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+}
+.head .doc-number {
+    font-size: 20pt;
+    font-weight: 700;
+    letter-spacing: -0.4pt;
+    margin-top: 2mm;
+    color: var(--ink);
+}
+.head .isdoc-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 1.5mm;
+    padding: 0.8mm 2mm;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-radius: 999pt;
+    font-size: 6.5pt;
+    font-weight: 600;
+    letter-spacing: 0.5pt;
+    white-space: nowrap;
+}
+.head .isdoc-pill .dot { font-size: 6pt; }
+
+/* parties: side-by-side, no box ------------------------------------ */
+.parties {
+    display: flex;
+    gap: 12mm;
+    padding-bottom: 6mm;
+    margin-bottom: 6mm;
+    border-bottom: 0.5pt solid var(--hairline);
+}
+.party { flex: 1; }
+.party .label {
+    font-size: 7.5pt;
+    text-transform: uppercase;
+    letter-spacing: 1.2pt;
+    color: var(--muted);
+    font-weight: 600;
+    margin-bottom: 2.5mm;
+}
+.party .name {
+    font-weight: 600;
+    font-size: 11pt;
+    margin-bottom: 1.5mm;
+    color: var(--ink);
+}
+.party .line { color: var(--ink-soft); margin-bottom: 0.3mm; }
+.party .ids {
+    margin-top: 2mm;
+    font-size: 9pt;
+    color: var(--ink-soft);
+}
+.party .ids .key { color: var(--muted); }
+.party .vat-flag {
+    margin-top: 1mm;
+    font-size: 8.5pt;
+    color: var(--accent);
+    font-weight: 600;
+}
+
+/* meta grid: dates + payment --------------------------------------- */
+.meta-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6mm;
+    margin-bottom: 7mm;
+}
+.meta-cell .label {
+    font-size: 7.5pt;
+    text-transform: uppercase;
+    letter-spacing: 1.2pt;
+    color: var(--muted);
+    font-weight: 600;
+    margin-bottom: 1.5mm;
+}
+.meta-cell .value {
+    font-size: 10pt;
+    font-weight: 500;
+    color: var(--ink);
+    white-space: nowrap;
+}
+.meta-cell .value.account { font-feature-settings: "tnum"; font-size: 9.5pt; }
+
+/* items table: hairlines only -------------------------------------- */
+table.items {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 6mm;
+}
+table.items thead th {
+    text-align: right;
+    font-size: 7.5pt;
+    text-transform: uppercase;
+    letter-spacing: 1.2pt;
+    color: var(--muted);
+    font-weight: 600;
+    padding: 2mm 1.5mm;
+    border-bottom: 0.6pt solid var(--ink);
+}
+table.items thead th.left { text-align: left; }
+table.items tbody td {
+    padding: 3mm 1.5mm;
+    border-bottom: 0.4pt solid var(--hairline);
+    text-align: right;
+    color: var(--ink-soft);
+}
+table.items tbody td.left { text-align: left; }
+table.items tbody td.qty { color: var(--muted); white-space: nowrap; }
+table.items tbody td.desc { color: var(--ink); font-weight: 500; }
+table.items tbody td.amount { color: var(--ink); font-weight: 500; }
+
+/* bottom row: qr + summary ----------------------------------------- */
+.bottom {
+    display: flex;
+    gap: 10mm;
+    margin-top: 6mm;
+    align-items: flex-start;
+}
+.qr-block {
+    flex: 0 0 38mm;
+}
+.qr-block img {
+    width: 36mm;
+    height: 36mm;
+    display: block;
+    border: 0.4pt solid var(--hairline);
+    padding: 1mm;
+    border-radius: 1.5pt;
+}
+.qr-block .qr-cap {
+    text-align: center;
+    font-size: 7.5pt;
+    color: var(--muted);
+    letter-spacing: 1.2pt;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-top: 1.5mm;
+}
+.qr-placeholder {
+    width: 36mm; height: 36mm;
+    border: 0.5pt dashed var(--hairline);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--muted); font-size: 8pt;
+}
+
+.summary { flex: 1; }
+.summary table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-left: auto;
+}
+.summary table.vat th {
+    text-align: right;
+    font-size: 7.5pt;
+    text-transform: uppercase;
+    letter-spacing: 1pt;
+    color: var(--muted);
+    font-weight: 600;
+    padding: 1.5mm 3mm;
+}
+.summary table.vat td {
+    text-align: right;
+    padding: 1mm 3mm;
+    font-size: 9pt;
+    color: var(--ink-soft);
+}
+.summary table.vat tr.subtotal td { border-top: 0.4pt solid var(--hairline); padding-top: 2mm; }
+.summary table.vat tr.subtotal td.label { color: var(--muted); }
+
+.grand {
+    margin-top: 5mm;
+    padding-top: 4mm;
+    border-top: 1.2pt solid var(--ink);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 6mm;
+}
+.grand .label {
+    font-size: 8.5pt;
+    text-transform: uppercase;
+    letter-spacing: 1.4pt;
+    color: var(--muted);
+    font-weight: 600;
+}
+.grand .amount {
+    font-size: 16pt;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -0.2pt;
+}
+.grand .amount .currency {
+    font-size: 10pt;
+    color: var(--muted);
+    font-weight: 500;
+    margin-left: 1mm;
+}
+
+.note {
+    margin-top: 5mm;
+    padding: 3mm 4mm;
+    background: var(--bg-soft);
+    border-left: 1.5pt solid var(--accent);
+    color: var(--ink-soft);
+    font-size: 9pt;
+    border-radius: 1pt;
+}
+.summary table.vat.czk { margin-top: 3mm; }
+.legal-note {
+    margin-top: 2mm;
+    text-align: right;
+    color: var(--ink-soft);
+    font-size: 8.5pt;
+    font-weight: 600;
+}
+.party .contact { font-size: 8.5pt; }
+.correction {
+    margin-bottom: 5mm;
+    padding: 3mm 4mm;
+    background: var(--bg-soft);
+    border-left: 1.5pt solid var(--accent);
+    font-size: 9pt;
+    border-radius: 1pt;
+}
+.correction .label { color: var(--muted); font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.08em; margin-right: 2mm; }
+
+table.items thead th { background: var(--accent-soft); color: var(--accent-ink); }

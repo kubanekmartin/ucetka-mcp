@@ -1,0 +1,40 @@
+{% if reminders.overdue or reminders.soon %}
+<section class="reminders" aria-label="Upozornění na splatnost">
+    {% if reminders.overdue %}
+    <div class="alert alert-bad" role="alert">
+        <p class="alert-title">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="8" cy="8" r="6.25"/><path d="M8 4.75v3.75M8 10.75v.5" stroke-linecap="round"/></svg>
+            {{ reminders.overdue|length }} {{ 'faktura je' if reminders.overdue|length == 1 else ('faktury jsou' if reminders.overdue|length < 5 else 'faktur je') }} po splatnosti · {{ fmt_czk(reminders.overdue_total) }}
+        </p>
+        <ul class="reminder-list">
+            {% for r, d in reminders.overdue %}
+            <li>
+                <a href="/faktura/{{ r.invoice.number }}.pdf" target="_blank" rel="noopener" class="num">{{ r.invoice.number }}</a>
+                <span class="who">{{ r.invoice.customer.name }}</span>
+                <span class="when">{{ days(d) }} po splatnosti</span>
+                <span class="amt">{{ fmt_cur(r.invoice.total_gross, r.invoice.currency_symbol) }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+    {% if reminders.soon %}
+    <div class="alert alert-warn">
+        <p class="alert-title">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="8" cy="8" r="6.25"/><path d="M8 4.5V8l2.25 1.5" stroke-linecap="round"/></svg>
+            Splatné v příštích 7 dnech
+        </p>
+        <ul class="reminder-list">
+            {% for r, d in reminders.soon %}
+            <li>
+                <a href="/faktura/{{ r.invoice.number }}.pdf" target="_blank" rel="noopener" class="num">{{ r.invoice.number }}</a>
+                <span class="who">{{ r.invoice.customer.name }}</span>
+                <span class="when">{{ 'dnes' if d == 0 else ('zítra' if d == 1 else 'za ' ~ days(d)) }} · {{ fmt_date(r.invoice.due_date) }}</span>
+                <span class="amt">{{ fmt_cur(r.invoice.total_gross, r.invoice.currency_symbol) }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+</section>
+{% endif %}

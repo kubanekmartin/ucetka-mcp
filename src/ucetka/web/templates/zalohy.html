@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Zálohy {{ o.year }}{% endblock %}
+{% set labels = {"paid": "Zaplaceno", "overdue": "Nezapsáno", "due": "Splatné tento měsíc", "future": "Budoucí"} %}
+{% set badge = {"paid": "paid", "overdue": "overdue", "due": "soon", "future": "issued"} %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Zálohy {{ o.year }}</h1>
+        <p>Sociální pojištění (ČSSZ) {{ kc(o.settings.social_advance_monthly) }} měsíčně · splatnost do posledního dne měsíce, za který se platí</p>
+    </div>
+    <nav class="segmented" aria-label="Rok">
+        {% for y in years %}<a href="/zalohy?year={{ y }}" {% if y == o.year %}aria-current="page"{% endif %}>{{ y }}</a>{% endfor %}
+    </nav>
+</div>
+
+{% if just_saved %}<div class="alert alert-ok" role="status" style="margin-bottom:16px"><p class="alert-title">Uloženo.</p></div>{% endif %}
+
+{% if months %}
+{% set missing = months|selectattr("status", "equalto", "overdue")|list %}
+<section class="grid two" style="margin-bottom:16px">
+    <div class="card">
+        <div class="card-head">
+            <h2>Rozpis záloh ČSSZ</h2>
+            {% if missing %}
+            <form method="post" action="/zalohy/dosud" class="inline-form">
+                <input type="hidden" name="year" value="{{ o.year }}">
+                <button class="btn btn-secondary btn-sm" type="submit" title="Zapíše všechny dosud nezapsané měsíce jako zaplacené k datu splatnosti">Mám zaplaceno vše do teď ({{ missing|length }})</button>
+            </form>
+            {% endif %}
+        </div>
+        <div class="months">
+            {% for m in months %}
+            <div class="month {{ m.status }}">
+                <span class="m-name">{{ m.period[5:]|int }}/{{ m.period[:4] }}</span>
+                <span class="badge {{ badge[m.status] }}">{{ labels[m.status] }}</span>
+                <span class="m-due">{% if m.status == 'paid' %}{{ kc(m.paid) }}{% else %}do {{ fmt_date(m.due) }}{% endif %}</span>
+                {% if m.status != 'paid' %}
+                <form method="post" action="/zalohy/zaplaceno">
+                    <input type="hidden" name="period" value="{{ m.period }}">
+                    <input type="hidden" name="amount" value="{{ m.amount }}">
+                    <input type="hidden" name="paid_on" value="{{ (o.today if o.today < m.due else m.due).isoformat() }}">
+                    <button class="btn btn-secondary btn-sm" type="submit">Zaplaceno</button>
+                </form>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        <div class="note">„Zaplaceno“ zapíše zálohu s dnešním datem (u minulých měsíců s datem splatnosti). Jiné částky a doplatky zapiš formulářem níž.</div>
+    </div>
+    <div class="card">
+        <h2>Zaplatit</h2>
+        {% if to_pay %}
+        <div class="qr-pay">
+            {% if qr %}<img src="{{ qr }}" alt="QR platba zálohy {{ to_pay.period }}">{% endif %}
+            <div>
+                <div class="muted">Záloha za {{ to_pay.period[5:]|int }}/{{ to_pay.period[:4] }}</div>
+                <div class="big-num">{{ kc(to_pay.amount) }}</div>
+                <div class="muted">do {{ fmt_date(to_pay.due) }}</div>
+                {% if pay %}<div class="sub-line">Účet {{ pay.account }} · VS {{ pay.variable_symbol }}</div>{% endif %}
+            </div>
+        </div>
+        {% if not pay %}
+        <div class="note">QR kód se ukáže, až do <code>~/.ucetka/tax.yaml</code> doplníš číslo účtu a variabilní symbol z dopisu ČSSZ:
+            <pre style="margin:8px 0 0">cssz_payment:
+  account: "…/0710"
+  variable_symbol: "…"</pre></div>
+        {% endif %}
+        {% else %}
+        <p class="muted">Vše zaplaceno.</p>
+        {% endif %}
+    </div>
+</section>
+{% else %}
+<div class="alert" style="margin-bottom:16px"><p>V <code>tax.yaml</code> není nastavená měsíční záloha ČSSZ (<code>social_advance_monthly</code>).</p></div>
+{% endif %}
+
+<section class="grid halves" style="margin-bottom:16px">
+    <div class="card">
+        <h2>Záloha na příští rok</h2>
+        <div class="big-num">{{ kc(nxt.social_monthly) }}<span class="muted" style="font-size:14px;font-weight:500"> / měsíc ČSSZ</span></div>
+        <p class="sub-line">{{ nxt.social_note }} Odhad z prognózy roku {{ o.year }}; skutečnou zálohu ti určí ČSSZ po podání přehledu.</p>
+        <p class="sub-line">{{ nxt.dpfo_note }}</p>
+    </div>
+    <div class="card">
+        <h2>Zapsat jinou platbu</h2>
+        <form method="post" action="/zalohy/platba" class="form-grid">
+            <div class="field span-6">
+                <label for="p-kind">Druh</label>
+                <select name="kind" id="p-kind" required>
+                    {% for k, label in kinds.items() %}<option value="{{ k }}">{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="field span-3"><label for="p-amount">Částka (Kč)</label><input name="amount" id="p-amount" type="number" step="0.01" min="0" inputmode="decimal" required></div>
+            <div class="field span-3"><label for="p-paid">Zaplaceno dne</label><input name="paid_on" id="p-paid" type="date" value="{{ o.today.isoformat() }}" required></div>
+            <input type="hidden" name="tax_year" value="{{ o.year }}">
+            <div class="field span-6"><label for="p-note">Poznámka</label><input name="note" id="p-note" type="text" placeholder="např. doplatek ČSSZ za 2025, DPH Q3"></div>
+            <div class="span-6"><button class="btn" type="submit">Uložit platbu</button></div>
+        </form>
+    </div>
+</section>
+
+<section class="card">
+    <h2>Zapsané platby {{ o.year }}</h2>
+    <div class="table-wrap"><table>
+        <thead><tr><th scope="col">Zaplaceno</th><th scope="col">Druh</th><th scope="col">Za měsíc</th><th scope="col">Poznámka</th><th scope="col" class="n">Částka</th></tr></thead>
+        <tbody>
+        {% for p in payments %}
+        <tr><td class="num muted">{{ fmt_date(p.paid_on) }}</td><td>{{ kinds[p.kind] }}</td><td class="num">{{ p.period or '—' }}</td><td class="muted">{{ p.note or '' }}</td><td class="n">{{ kc(p.amount) }}</td></tr>
+        {% else %}<tr><td class="muted" colspan="5">Zatím nic.</td></tr>{% endfor %}
+        </tbody>
+    </table></div>
+</section>
+{% endblock %}

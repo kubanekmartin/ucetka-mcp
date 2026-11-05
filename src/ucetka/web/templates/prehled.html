@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% block title %}Přehled {{ o.year }}{% endblock %}
+{% block head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha384-bs/nf9FbdNouRbMiFcrcZfLXYPKiPaGVGplVbv7dLGECccEXDW+S3zjqSKR5ZEaD" crossorigin="anonymous"></script>
+{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Přehled {{ o.year }}</h1>
+        <p>{{ supplier.name }} · stav k {{ fmt_date(o.today) }} · {{ 'skutečné výdaje' if o.settings.expense_mode == 'actual' else 'paušál %d %%' % o.settings.flat_rate_percent }} · DPH {{ 'čtvrtletně' if o.settings.vat_period == 'quarterly' else 'měsíčně' }}</p>
+    </div>
+    <nav class="segmented" aria-label="Rok">
+        {% for y in years %}<a href="/prehled?year={{ y }}" {% if y == o.year %}aria-current="page"{% endif %}>{{ y }}</a>{% endfor %}
+    </nav>
+</div>
+
+{% include "_reminders.html" %}
+
+<section class="grid kpis kpis-compact" style="margin-bottom:16px">
+    <div class="card kpi">
+        <div class="label">Fakturováno {{ o.year }} (bez DPH)</div>
+        <div class="value">{{ kc(o.issued_net) }}</div>
+        <div class="hint">Zaplaceno {{ kc(o.paid_net) }} · čeká {{ kc(o.expected_income - o.paid_net) }}</div>
+        {% if fc %}<div class="hint fc">Prognóza za rok: <strong>{{ kc(fc.income) }}</strong></div>{% endif %}
+    </div>
+    <div class="card kpi">
+        <div class="label">Daň z příjmů</div>
+        <div class="value">{{ kc(o.tax.tax) }}</div>
+        <div class="hint">Základ {{ kc(o.tax.tax_base) }} · paušál {{ kc(o.tax.expenses) }}</div>
+        {% if fc %}<div class="hint fc">Prognóza: <strong>{{ kc(fc.tax.tax) }}</strong></div>{% endif %}
+    </div>
+    <div class="card kpi">
+        <div class="label">Pojištění celkem</div>
+        <div class="value">{{ kc(o.social.amount + o.health.amount) }}</div>
+        <div class="hint">ČSSZ {{ kc(o.social.amount) }} · ZP {{ kc(o.health.amount) }}</div>
+        {% if fc %}<div class="hint fc">Prognóza: <strong>{{ kc(fc.social.amount + fc.health.amount) }}</strong></div>{% endif %}
+    </div>
+    <a class="card kpi" href="/dph" style="color:inherit;text-decoration:none">
+        {% set nv = next_vat %}
+        <div class="label">DPH {{ nv.label }} — do {{ fmt_date(nv.due) }}</div>
+        <div class="value">{{ kc(nv.result) }}</div>
+        <div class="hint">výstup {{ kc(nv.output_vat) }} − vstup {{ kc(nv.input_vat) }}</div>
+    </a>
+    {% set eff = o.effective %}
+    <a class="card kpi" href="/dane" style="color:inherit;text-decoration:none">
+        <div class="label">Efektivní zdanění</div>
+        <div class="value">{{ '%.1f'|format(eff.on_income * 100)|replace('.', ',') }} %</div>
+        <div class="hint">{{ kc(eff.burden) }} daně a pojištění · {{ '%.1f'|format(eff.on_profit * 100)|replace('.', ',') }} % ze zisku</div>
+        {% if fc %}<div class="hint fc">Prognóza: <strong>{{ '%.1f'|format(fc.effective.on_income * 100)|replace('.', ',') }} %</strong> z {{ kc(fc.income) }}</div>{% endif %}
+    </a>
+</section>
+
+{% if o.invoice_issues or o.expense_issues %}
+<details class="alert alert-warn flags" style="margin-bottom:16px">
+    <summary><span class="alert-title">{{ o.invoice_issues|length + o.expense_issues|length }} dokladů je potřeba zadat ručně</span> <span class="muted">— automaticky je neumím přečíst</span></summary>
+    <div class="table-wrap"><table style="margin-top:12px">
+        <thead><tr><th scope="col">Soubor</th><th scope="col">Důvod</th></tr></thead>
+        <tbody>
+        {% for i in o.invoice_issues %}<tr><td>Vydaná · {{ i.pdf_path.parent.name }}/{{ i.pdf_path.name }}</td><td>{{ i.reason }}</td></tr>{% endfor %}
+        {% for i in o.expense_issues %}<tr><td>Přijatá · {{ i.pdf_path.parent.name }}/{{ i.pdf_path.name }}</td><td>{{ i.reason }}</td></tr>{% endfor %}
+        </tbody>
+    </table></div>
+    <div class="note">Zadej v chatu: „zadej ručně přijatou fakturu 2603002 — Google Cloud, základ …“ (nástroje add_expense / add_manual_invoice).</div>
+</details>
+{% endif %}
+
+<section class="grid two" style="margin-bottom:16px">
+    <div class="card">
+        <h2>Fakturace po měsících (bez DPH, podle DUZP)</h2>
+        <canvas id="months" aria-label="Graf fakturace po měsících {{ o.year }} a {{ o.year - 1 }}" role="img"></canvas>
+    </div>
+    <div class="card">
+        <h2>Nejbližší termíny</h2>
+        <table>
+            <tbody>
+            {% for d in o.deadlines[:7] %}
+            <tr><td class="num muted" style="white-space:nowrap">{{ fmt_date(d.when) }}</td><td>{{ d.what }}</td></tr>
+            {% else %}<tr><td class="muted">Nic v dohledu.</td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="grid halves" style="margin-bottom:16px">
+    <a class="card" href="/dane" style="color:inherit;text-decoration:none">
+        <h2>Daně a prognóza →</h2>
+        <p class="muted" style="margin:0">Skutečnost vs. prognóza do konce roku, strop paušálu, hranice 23 %, doplatky.</p>
+    </a>
+    <a class="card" href="/zalohy" style="color:inherit;text-decoration:none">
+        <h2>Zálohy →</h2>
+        <p class="muted" style="margin:0">Rozpis záloh ČSSZ po měsících, QR platba, záloha na příští rok.</p>
+    </a>
+</section>
+
+<section class="card">
+    <div class="card-head">
+        <h2>Nezaplacené faktury ({{ o.unpaid|length }}, po splatnosti {{ o.overdue|length }})</h2>
+        <a href="/faktury" class="btn btn-secondary btn-sm">Všechny faktury</a>
+    </div>
+    <div class="table-wrap"><table>
+        <thead><tr><th scope="col">Číslo</th><th scope="col">Odběratel</th><th scope="col">Splatnost</th><th scope="col" class="n">Částka</th><th scope="col"><span class="sr-only">Akce</span></th></tr></thead>
+        <tbody>
+        {% for r in o.unpaid %}
+        <tr>
+            <td class="num"><a href="/faktura/{{ r.invoice.number }}.pdf" target="_blank" rel="noopener">{{ r.invoice.number }}</a></td>
+            <td class="label-col">{{ r.invoice.customer.name }}</td>
+            <td class="num" style="white-space:nowrap">{{ fmt_date(r.invoice.due_date) }} {% if r.overdue %}<span class="badge overdue">po splatnosti</span>{% endif %}</td>
+            <td class="n">{{ fmt_cur(r.invoice.total_gross, r.invoice.currency_symbol) }}</td>
+            <td class="n">
+                <form method="post" action="/prehled/zaplaceno" class="inline-form">
+                    <input type="hidden" name="number" value="{{ r.invoice.number }}">
+                    <input type="hidden" name="year" value="{{ o.year }}">
+                    <label for="pp-{{ r.invoice.number }}" class="sr-only">Datum úhrady faktury {{ r.invoice.number }}</label>
+                    <input id="pp-{{ r.invoice.number }}" type="date" name="paid_on" value="{{ (r.invoice.due_date if r.invoice.due_date < o.today else o.today).isoformat() }}">
+                    <button class="btn btn-secondary btn-sm" type="submit">Zaplaceno</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}<tr><td class="muted" colspan="5">Vše zaplaceno.</td></tr>{% endfor %}
+        </tbody>
+    </table></div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(() => {
+    const months = {{ chart|tojson }};
+    const css = getComputedStyle(document.documentElement);
+    const v = name => css.getPropertyValue(name).trim();
+    Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+    Chart.defaults.color = v("--text-3");
+    const chart = new Chart(document.getElementById("months"), {
+        data: {
+            labels: ["led","úno","bře","dub","kvě","čvn","čvc","srp","zář","říj","lis","pro"],
+            datasets: [
+                { type: "bar", label: "{{ o.year }}", data: months.current, stack: "rok", backgroundColor: v("--accent"), borderRadius: 6, maxBarThickness: 28 },
+                { type: "bar", label: "Prognóza", data: months.forecast, stack: "rok", backgroundColor: v("--chart-prev"), borderRadius: 6, maxBarThickness: 28, hidden: !document.body.classList.contains("show-fc") },
+                { type: "line", label: "{{ o.year - 1 }}", stack: "loni", data: months.previous, borderColor: v("--chart-prev"), backgroundColor: v("--chart-prev"), borderWidth: 1.5, borderDash: [4, 4], tension: 0, pointRadius: 2 },
+            ],
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: "bottom", labels: { usePointStyle: true, boxWidth: 8, boxHeight: 8 } },
+                tooltip: { callbacks: { label: c => `${c.dataset.label}: ${c.parsed.y.toLocaleString("cs-CZ")} Kč` } },
+            },
+            scales: {
+                x: { stacked: true, grid: { display: false }, border: { color: v("--border") }, ticks: { maxRotation: 0 } },
+                y: { stacked: true, grid: { color: v("--chart-grid") }, border: { display: false }, ticks: { callback: val => val.toLocaleString("cs-CZ") } },
+            },
+        },
+    });
+    document.addEventListener("fc-toggle", e => {
+        chart.data.datasets[1].hidden = !e.detail || !months.forecast.length;
+        chart.update();
+    });
+})();
+</script>
+{% endblock %}

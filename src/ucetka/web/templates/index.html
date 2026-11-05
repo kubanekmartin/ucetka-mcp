@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}Nová faktura{% endblock %}
+{% block page_class %}page-narrow{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Nová faktura</h1>
+        <p>Vystaví PDF s embedded ISDOC 6.0.2 + QR Platba (+F).</p>
+    </div>
+</div>
+
+<div class="alert" style="margin-bottom:16px">
+    <span class="muted">Dodavatel</span>
+    <strong style="display:block">{{ supplier.name }}</strong>
+    <span class="muted num">{% if supplier.ico %}IČO {{ supplier.ico }}{% endif %}{% if supplier.dic %} · DIČ {{ supplier.dic }}{% endif %}</span>
+</div>
+
+<form method="post" action="/issue" class="stack-lg">
+    <section class="card">
+        <fieldset>
+            <legend>Odběratel</legend>
+            <div class="form-grid">
+                {% if customers %}
+                <div class="field span-6">
+                    <label for="customer_id">Z adresáře <small>volitelně</small></label>
+                    <select name="customer_id" id="customer_id">
+                        <option value="">— vyplním ručně níže —</option>
+                        {% for cid, c in customers.items() %}
+                        <option value="{{ cid }}">{{ c.name }} ({{ cid }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                <div class="field span-6">
+                    <label for="customer_name">Název</label>
+                    <input type="text" name="customer_name" id="customer_name" placeholder="Firma s.r.o." autocomplete="organization">
+                </div>
+                <div class="field span-3"><label for="customer_ico">IČO</label><input type="text" name="customer_ico" id="customer_ico" inputmode="numeric"></div>
+                <div class="field span-3"><label for="customer_dic">DIČ</label><input type="text" name="customer_dic" id="customer_dic"></div>
+                <div class="field span-6"><label for="customer_street">Ulice a č. p.</label><input type="text" name="customer_street" id="customer_street" autocomplete="address-line1"></div>
+                <div class="field span-2"><label for="customer_zip">PSČ</label><input type="text" name="customer_zip" id="customer_zip" inputmode="numeric" autocomplete="postal-code"></div>
+                <div class="field span-4"><label for="customer_city">Město</label><input type="text" name="customer_city" id="customer_city" autocomplete="address-level2"></div>
+            </div>
+        </fieldset>
+    </section>
+
+    <section class="card">
+        <fieldset>
+            <legend>Faktura</legend>
+            <div class="form-grid">
+                <div class="field span-2"><label for="number">Číslo</label><input type="text" name="number" id="number" placeholder="{{ suggested_number }}" value=""><small>prázdné = {{ suggested_number }}</small></div>
+                <div class="field span-2"><label for="issue_date">Vystaveno</label><input type="date" name="issue_date" id="issue_date" value="{{ today }}" required></div>
+                <div class="field span-2"><label for="due_date">Splatnost</label><input type="date" name="due_date" id="due_date" value="{{ due_default }}" required></div>
+                <div class="field span-3">
+                    <label for="tax_point_date">DUZP <small>volitelné, výchozí = vystaveno</small></label>
+                    <input type="date" name="tax_point_date" id="tax_point_date">
+                </div>
+            </div>
+        </fieldset>
+    </section>
+
+    <section class="card">
+        <fieldset>
+            <legend>Položky</legend>
+            <datalist id="units">
+                {% for u in ["ks", "h", "den", "měsíc", "km", "paušál", "licence", "projekt"] %}<option value="{{ u }}">{% endfor %}
+            </datalist>
+            <div id="items" class="stack-lg">
+                <div class="form-grid item-row">
+                    <div class="field span-6"><label>Popis</label><input type="text" name="item_description" required></div>
+                    <div class="field span-1"><label>Počet</label><input type="text" name="item_quantity" value="1" inputmode="decimal" required></div>
+                    <div class="field span-1"><label>Jednotka</label><input type="text" name="item_unit" value="ks" list="units" required></div>
+                    <div class="field span-2"><label>Jedn. cena bez DPH</label><input type="text" name="item_unit_price_net" inputmode="decimal" required></div>
+                    <div class="field span-1">
+                        <label>DPH</label>
+                        <select name="item_vat_rate">
+                            {% if supplier.vat_payer %}<option value="21">21 %</option><option value="12">12 %</option>{% endif %}
+                            <option value="0">0 %</option>
+                        </select>
+                    </div>
+                    <div class="field span-1 item-remove"><label class="sr-only">Odebrat</label><button type="button" class="btn btn-secondary btn-sm" data-remove aria-label="Odebrat položku">✕</button></div>
+                </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;gap:8px;flex-wrap:wrap">
+                <button type="button" class="btn btn-secondary btn-sm" id="add-item">+ Přidat položku</button>
+                <span class="muted num" id="items-total" aria-live="polite"></span>
+            </div>
+        </fieldset>
+    </section>
+
+    <section class="card">
+        <fieldset>
+            <legend>Platba</legend>
+            <div class="form-grid">
+                <div class="field span-3">
+                    <label for="bank_account">Účet <small><code>[prefix-]číslo/banka</code></small></label>
+                    <input type="text" name="bank_account" id="bank_account" value="{{ supplier.bank_account.as_string() if supplier.bank_account else '' }}" placeholder="19-2000145399/0800">
+                </div>
+                <div class="field span-3">
+                    <label for="variable_symbol">Variabilní symbol <small>výchozí = číslo faktury</small></label>
+                    <input type="text" name="variable_symbol" id="variable_symbol" inputmode="numeric">
+                </div>
+                <div class="field span-6">
+                    <label for="language">Jazyk faktury</label>
+                    <select name="language" id="language">
+                        <option value="cs" selected>Čeština</option>
+                        <option value="en">English</option>
+                    </select>
+                </div>
+                <div class="checks span-6">
+                    <label class="check"><input type="checkbox" name="qr_plus_f" value="true" checked> QR Faktura (+F)</label>
+                    <label class="check"><input type="checkbox" name="pdf_a3" value="true" checked> PDF/A-3a</label>
+                </div>
+            </div>
+        </fieldset>
+    </section>
+
+    <div><button class="btn" type="submit">Vystavit fakturu</button></div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(() => {
+    const list = document.getElementById("items");
+    const total = document.getElementById("items-total");
+    const num = v => parseFloat(String(v).replace(/\s/g, "").replace(",", ".")) || 0;
+    const fmt = v => v.toLocaleString("cs-CZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const refresh = () => {
+        let net = 0, vat = 0;
+        list.querySelectorAll(".item-row").forEach(row => {
+            const n = num(row.querySelector("[name=item_quantity]").value) * num(row.querySelector("[name=item_unit_price_net]").value);
+            net += n;
+            vat += n * num(row.querySelector("[name=item_vat_rate]").value) / 100;
+        });
+        total.textContent = `Bez DPH ${fmt(net)} Kč · DPH ${fmt(vat)} Kč · celkem ${fmt(net + vat)} Kč`;
+        const rows = list.querySelectorAll(".item-row");
+        rows.forEach(r => r.querySelector("[data-remove]").disabled = rows.length === 1);
+    };
+    document.getElementById("add-item").addEventListener("click", () => {
+        const row = list.querySelector(".item-row").cloneNode(true);
+        row.querySelectorAll("input").forEach(i => { i.value = { item_quantity: "1", item_unit: "ks" }[i.name] || ""; });
+        list.appendChild(row);
+        row.querySelector("[name=item_description]").focus();
+        refresh();
+    });
+    list.addEventListener("click", e => {
+        const btn = e.target.closest("[data-remove]");
+        if (btn && list.querySelectorAll(".item-row").length > 1) { btn.closest(".item-row").remove(); refresh(); }
+    });
+    list.addEventListener("input", refresh);
+    refresh();
+})();
+</script>
+{% endblock %}

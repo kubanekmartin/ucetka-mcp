@@ -1,0 +1,12 @@
+vzorova-firma:
+  name: Vzorová firma s.r.o.
+  ico: "87654326"
+  dic: CZ87654326
+  vat_payer: true
+  address:
+    street: Vzorová 1234/5
+    city: Praha
+    zip: "110 00"
+    country: Česká republika
+    country_code: CZ
+  email: faktury@example.com

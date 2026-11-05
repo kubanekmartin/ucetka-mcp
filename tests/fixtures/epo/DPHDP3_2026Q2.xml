@@ -1,0 +1,13 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<Pisemnost nazevSW="ucetka-mcp" verzeSW="0.1.0">
+  <DPHDP3 verzePis="03.01">
+    <VetaD c_okec="0" ctvrt="2" d_poddp="26.07.2026" dapdph_forma="B" dokument="DP3" k_uladis="DPH" rok="2026" trans="A" typ_platce="P"/>
+    <VetaP c_ufo="451" c_pracufo="2001" dic="98765434" typ_ds="F" jmeno="Petr" prijmeni="Svoboda" zkrobchjm="PETR SVOBODA" ulice="Hlavní" c_pop="123" naz_obce="Kolín" psc="28002" email="test@example.com" c_telef="700000000"/>
+    <Veta1 dan23="27447" dan5="0" dan_dzb23="0" dan_dzb5="0" dan_pdop_nrg="0" dan_psl23_e="357" dan_psl23_z="825" dan_psl5_e="0" dan_psl5_z="0" dan_pzb23="0" dan_pzb5="0" dov_zb23="0" dov_zb5="0" obrat23="130700" obrat5="0" p_dop_nrg="0" p_sl23_e="1701" p_sl23_z="3931" p_sl5_e="0" p_sl5_z="0" p_zb23="0" p_zb5="0"/>
+    <Veta2 dod_dop_nrg="0" dod_zb="0" pln_ost="0" pln_sluzby="0" pln_vyvoz="0" pln_zaslani="0"/>
+    <Veta3 dov_osv="0" opr_dluz="0" opr_verit="0" tri_dozb="0" tri_pozb="0"/>
+    <Veta4 dov_cu="0" nar_maj="0" nar_zdp23="5632" nar_zdp5="0" od_maj="0" od_zdp23="1182" od_zdp5="0" odkr_maj="0" odkr_zdp23="0" odkr_zdp5="0" odp_cu="0" odp_cu_nar="0" odp_rez_nar="0" odp_rezim="0" odp_sum_kr="0" odp_sum_nar="7419" odp_tuz23="0" odp_tuz23_nar="6237" odp_tuz5="0" odp_tuz5_nar="0" pln23="29700" pln5="0"/>
+    <Veta5 odp_uprav_kf="0" plnosv_kf="0" plnosv_nkf="0"/>
+    <Veta6 dan_vrac="0" dan_zocelk="28629" dano_da="21210" dano_no="0" odp_zocelk="7419"/>
+  </DPHDP3>
+</Pisemnost>

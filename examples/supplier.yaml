@@ -1,0 +1,15 @@
+name: Petr Svoboda
+ico: "98765434"
+dic: CZ98765434
+vat_payer: true
+address:
+  street: Hlavní 123
+  city: Kolín
+  zip: "28002"
+  country: Česká republika
+  country_code: CZ
+registration_note: Fyzická osoba zapsaná v živnostenském rejstříku.
+bank_account:
+  prefix: "19"
+  number: "2000145399"
+  bank_code: "0100"

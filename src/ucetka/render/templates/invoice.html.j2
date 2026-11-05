@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="{{ inv.language }}">
+<head>
+    <meta charset="utf-8">
+    <title>{{ title }} {{ inv.number }}</title>
+    <style>{{ css }}</style>
+</head>
+<body>
+    {% if inv.supplier.registration_note %}<div class="footer-left">{{ tr(inv.supplier.registration_note) }}</div>{% endif %}
+    {% if inv.issued_by %}<div class="footer-right">{{ t.issued_by }} {{ inv.issued_by }}</div>{% endif %}
+
+    <div class="accent-bar"></div>
+
+    <header class="head">
+        <div>
+            <div class="doc-label">{{ title }}</div>
+            <div class="doc-number">#{{ inv.number }}</div>
+        </div>
+        {% if has_isdoc %}
+        <div class="isdoc-pill"><span class="dot">●</span>ISDOC 6.0.2</div>
+        {% endif %}
+    </header>
+
+    <section class="parties">
+        <div class="party">
+            <div class="label">{{ t.supplier }}</div>
+            <div class="name">{{ inv.supplier.name }}</div>
+            <div class="line">{{ inv.supplier.address.street }}</div>
+            <div class="line">{{ inv.supplier.address.zip }} {{ inv.supplier.address.city }}</div>
+            <div class="line">{{ tr(inv.supplier.address.country) }}</div>
+            <div class="ids">
+                {% if inv.supplier.ico %}<span class="key">{{ t.ico }}</span> {{ inv.supplier.ico }}{% endif %}
+                {% if inv.supplier.dic %}&nbsp;&nbsp;<span class="key">{{ t.dic }}</span> {{ inv.supplier.dic }}{% endif %}
+            </div>
+            {% if inv.supplier.vat_payer %}<div class="vat-flag">● {{ t.vat_payer }}</div>{% endif %}
+            {% for contact in [inv.supplier.email, inv.supplier.phone, inv.supplier.web] if contact %}<div class="line contact">{{ contact }}</div>{% endfor %}
+        </div>
+        <div class="party">
+            <div class="label">{{ t.customer }}</div>
+            <div class="name">{{ inv.customer.name }}</div>
+            <div class="line">{{ inv.customer.address.street }}</div>
+            <div class="line">{{ inv.customer.address.zip }} {{ inv.customer.address.city }}</div>
+            <div class="line">{{ tr(inv.customer.address.country) }}</div>
+            <div class="ids">
+                {% if inv.customer.ico %}<span class="key">{{ t.ico }}</span> {{ inv.customer.ico }}{% endif %}
+                {% if inv.customer.dic %}&nbsp;&nbsp;<span class="key">{{ t.dic }}</span> {{ inv.customer.dic }}{% endif %}
+            </div>
+        </div>
+    </section>
+
+    {% if inv.is_credit_note %}
+    <section class="correction">
+        <div><span class="label">{{ t.corrects }}</span> {{ inv.original.number }} {{ t.of_date }} {{ fmt_date(inv.original.issue_date) }}</div>
+        <div><span class="label">{{ t.reason }}</span> {{ inv.correction_reason }}</div>
+    </section>
+    {% endif %}
+    {% set sg = inv.sign %}
+
+    <section class="meta-grid">
+        <div class="meta-cell">
+            <div class="label">{{ t.issued }}</div>
+            <div class="value">{{ fmt_date(inv.issue_date) }}</div>
+        </div>
+        <div class="meta-cell">
+            <div class="label">{{ t.due }}</div>
+            <div class="value">{{ fmt_date(inv.due_date) }}</div>
+        </div>
+        {% if inv.is_tax_document %}
+        <div class="meta-cell">
+            <div class="label">{{ t.tax_point }}</div>
+            <div class="value">{{ fmt_date(inv.tax_point_date) }}</div>
+        </div>
+        {% endif %}
+        <div class="meta-cell">
+            <div class="label">{{ t.vs }}</div>
+            <div class="value">{{ inv.payment.variable_symbol }}</div>
+        </div>
+        <div class="meta-cell" style="grid-column: span 2;">
+            <div class="label">{{ t.account }}</div>
+            <div class="value account">{{ inv.payment.bank_account.as_string() }}</div>
+        </div>
+        <div class="meta-cell">
+            <div class="label">{{ t.payment_form }}</div>
+            <div class="value">{{ tr(inv.payment.payment_form) }}</div>
+        </div>
+        <div class="meta-cell">
+            <div class="label">{{ t.currency }}</div>
+            <div class="value">{{ inv.currency }}</div>
+        </div>
+        <div class="meta-cell" style="grid-column: span 2;">
+            <div class="label">{{ t.iban }}</div>
+            <div class="value account">{{ iban }}</div>
+        </div>
+        {% if bic %}
+        <div class="meta-cell">
+            <div class="label">{{ t.bic }}</div>
+            <div class="value">{{ bic }}</div>
+        </div>
+        {% endif %}
+        {% if inv.is_foreign_currency %}
+        <div class="meta-cell" style="grid-column: span 2;">
+            <div class="label">{{ t.cnb_rate }}</div>
+            <div class="value">{{ inv.exchange_rate_amount }} {{ inv.currency }} = {{ fmt_rate(inv.exchange_rate) }} {{ tr("Kč") }}</div>
+        </div>
+        {% endif %}
+    </section>
+
+    <table class="items">
+        <thead>
+            <tr>
+                <th class="left">{{ t.qty }}</th>
+                <th class="left">{{ t.description }}</th>
+                <th>{{ t.unit_price }}</th>
+                {% if inv.is_tax_document %}
+                <th>{{ t.vat_rate }}</th>
+                <th>{{ t.base }}</th>
+                <th>{{ t.vat }}</th>
+                {% endif %}
+                <th>{{ t.total }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for line in inv.lines %}
+            <tr>
+                <td class="left qty">{{ fmt_money(line.quantity) if line.quantity != line.quantity.to_integral() else line.quantity.to_integral() }} {{ tr(line.unit) }}</td>
+                <td class="left desc">{{ line.description }}</td>
+                <td>{{ fmt_money(line.unit_price_net) }}</td>
+                {% if inv.is_tax_document %}
+                <td>{{ fmt_pct(line.vat_rate) }}</td>
+                <td>{{ fmt_money(sg * line.net_total) }}</td>
+                <td>{{ fmt_money(sg * line.vat_total) }}</td>
+                {% endif %}
+                <td class="amount">{{ fmt_money(sg * line.gross_total) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <section class="bottom">
+        <div class="qr-block">
+            {% if inv.is_credit_note %}
+            {% elif qr_data_uri %}
+            <img src="{{ qr_data_uri }}" alt="{{ t.qr }}">
+            <div class="qr-cap">{{ tr(qr_label) or t.qr }}</div>
+            {% else %}
+            <div class="qr-placeholder">{{ t.qr }}</div>
+            {% endif %}
+        </div>
+        <div class="summary">
+            {% set vat_rows = inv.vat_breakdown() %}
+            {% if inv.is_tax_document and (vat_rows|length > 1 or inv.lines|length > 1) %}
+            <table class="vat">
+                <thead>
+                    <tr>
+                        <th>{{ t.rate }}</th>
+                        <th>{{ t.base }}</th>
+                        <th>{{ t.vat }}</th>
+                        <th>{{ t.total }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in vat_rows if vat_rows|length > 1 %}
+                    <tr>
+                        <td>{{ fmt_pct(row.rate) }}</td>
+                        <td>{{ fmt_money(sg * row.base) }}</td>
+                        <td>{{ fmt_money(sg * row.vat) }}</td>
+                        <td>{{ fmt_money(sg * row.total) }}</td>
+                    </tr>
+                    {% endfor %}
+                    <tr class="subtotal">
+                        <td class="label">{{ t.subtotal }}</td>
+                        <td>{{ fmt_money(sg * inv.total_net) }}</td>
+                        <td>{{ fmt_money(sg * inv.total_vat) }}</td>
+                        <td>{{ fmt_money(sg * inv.total_gross) }}</td>
+                    </tr>
+                </tbody>
+            </table>
+            {% endif %}
+            {% if inv.is_tax_document and inv.is_foreign_currency %}
+            <table class="vat czk">
+                <thead>
+                    <tr><th>{{ t.czk_recap }}</th><th>{{ t.base }}</th><th>{{ t.vat }}</th><th></th></tr>
+                </thead>
+                <tbody>
+                    {% for row in inv.vat_breakdown() %}
+                    <tr>
+                        <td>{{ fmt_pct(row.rate) }}</td>
+                        <td>{{ fmt_money(sg * row.base_czk) }}</td>
+                        <td>{{ fmt_money(sg * row.vat_czk) }}</td>
+                        <td></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+            <div class="grand">
+                <div class="label">{{ t.total_refund if inv.is_credit_note else t.total_due }}</div>
+                <div class="amount">{{ fmt_money(inv.total_gross) }}<span class="currency">{{ tr(inv.currency_symbol) }}</span></div>
+            </div>
+            {% for text in inv.legal_notes %}<div class="legal-note">{{ tr(text) }}</div>{% endfor %}
+        </div>
+    </section>
+
+    {% if inv.note %}<div class="note">{{ inv.note }}</div>{% endif %}
+</body>
+</html>

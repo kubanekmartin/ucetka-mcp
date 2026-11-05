@@ -1,0 +1,122 @@
+ucetka — faktury a daňová evidence (návod od A do Z)
+=========================================================
+
+Co to je
+--------
+Program na tvém Macu, který vystavuje faktury (PDF s QR platbou a ISDOC pro účetní programy), vede evidenci
+příjmů a výdajů, počítá daně a pojištění a připraví XML pro přiznání k DPH a kontrolní hlášení na Moje daně.
+Ovládáš ho dvěma způsoby:
+  • v prohlížeči (aplikace „Faktury“) — klikáním, bez AI,
+  • v chatu s AI (Gemini v aplikaci Google Antigravity) — „vystav fakturu pro … na 20 000 Kč“.
+Všechna data zůstávají jen v tvém Macu.
+
+
+ČÁST A — Instalace programu (asi 10 minut, jednou)
+--------------------------------------------------
+A1. Rozbal ZIP (dvojklik). Vznikne složka „ucetka“.
+A2. Ve složce klikni PRAVÝM tlačítkem na „Instalovat.command“ → Otevřít → v dialogu znovu Otevřít.
+    (Mac se ptá, protože program není z App Store. Obyčejný dvojklik by ho zablokoval.)
+A3. Otevře se okno Terminálu a začne instalace.
+    • Pokud se zeptá na heslo, napiš heslo k Macu (při psaní se nic nezobrazuje — to je v pořádku) a Enter.
+    • Poprvé se může instalovat „Homebrew“ a „Xcode Command Line Tools“ — trvá to pár minut, nech to doběhnout.
+A4. Pak odpovíš na pár otázek k podnikání. IČO je předvyplněné — potvrď Enterem.
+    Připrav si číslo účtu, na které ti mají chodit platby (formát 123456789/0800).
+A5. Na konci se v prohlížeči otevře přehled. Okno Terminálu pak zavři.
+A6. Přehled příště otevřeš přes aplikaci „Faktury“ (Finder → domovská složka → Aplikace → Faktury).
+    Tip: přetáhni ji do Docku.
+
+
+ČÁST B — Proč ne „klasická“ Gemini aplikace
+-------------------------------------------
+Aplikace Gemini (gemini.google.com i aplikace na Mac/PC) umí napojit vlastní nástroje jen v USA, jen v angličtině
+a jen přes server na internetu. Tvůj program běží na tvém Macu, takže potřebuješ Google Antigravity — aplikaci
+od Googlu se stejným Gemini, která umí pracovat s programy přímo v počítači. Přihlásíš se stejným Google účtem.
+
+
+ČÁST C — Instalace Google Antigravity (asi 5 minut)
+---------------------------------------------------
+C1. V prohlížeči otevři https://antigravity.google → Download → verze pro macOS.
+C2. Otevři stažený soubor a přetáhni Antigravity do složky Aplikace. Spusť ho.
+C3. Při prvním spuštění se přihlas svým Google účtem. Úvodní otázky (téma, klávesové zkratky…) můžeš odklikat.
+C4. Zavři Antigravity úplně (Cmd+Q) a spusť znovu. Teprve teď si načte ucetka.
+    (Pokud jsi Antigravity instaloval až PO programu ucetka, je to v pořádku — napojení se zapsalo předem.)
+
+
+ČÁST D — Kontrola napojení (2 minuty)
+-------------------------------------
+D1. V Antigravity otevři panel s AI agentem (vpravo; případně menu View → Agent).
+D2. Nahoře v panelu klikni na „…“ (tři tečky) → MCP Servers → Manage MCP Servers.
+D3. V seznamu má být „ucetka“ se zelenou tečkou a asi 25 nástroji (issue_invoice, tax_overview…). Hotovo.
+
+Když tam ucetka NENÍ:
+D4. Ve stejném okně klikni „View raw config“.
+D5. Ve složce ucetka (v domovské složce) otevři soubor „mcp_config_pro_AI.json“ (TextEdit), zkopíruj
+    jeho obsah a vlož ho do raw config. Pokud už tam něco je, vlož jen část od "ucetka": { … } dovnitř
+    existujícího "mcpServers". Ulož (Cmd+S), zavři Antigravity (Cmd+Q) a spusť znovu.
+D6. Když je u ucetka červená tečka/chyba: spusť znovu „Instalovat.command“ (krok A2) a pak restartuj
+    Antigravity. Instalace je bezpečná i opakovaně, data nesmaže.
+
+
+ČÁST E — První zpráva pro AI (zkopíruj a pošli jednou na začátku každé nové konverzace)
+-------------------------------------------------------------------------------------
+    Jsi můj účetní asistent. Pro faktury, výdaje, daně a DPH vždy používej nástroje ucetka
+    (MCP server), nikdy nic nepočítej ani nevymýšlej z hlavy. Odpovídej česky a stručně.
+    Pravidla:
+    1. Než vystavíš fakturu, ukaž mi návrh (odběratel, text, částka bez DPH, DPH, celkem, datum vystavení,
+       DUZP, splatnost) a počkej na moje „vystav“.
+    2. Odběratele s IČO dohledej přes lookup_company (ARES), stálé odběratele ulož přes add_customer.
+    3. E-maily jen připravuj jako koncept (draft_invoice_email), nikdy nic neodesílej.
+    4. Přijaté faktury zadávej přes add_expense; když si nejsi jistý sazbou nebo zemí dodavatele, zeptej se.
+    5. Přiznání k DPH připrav přes export_vat_return — nejdřív s preview=true a ukaž mi čísla.
+
+
+ČÁST F — Co AI říkat (příklady)
+-------------------------------
+  • „Vystav fakturu pro IČO 12345678 za konzultace v říjnu, 15 000 Kč bez DPH, splatnost 14 dní.“
+  • „Vystav fakturu anglicky pro …“ (faktura může být česky, nebo anglicky)
+  • „Kdo mi ještě nezaplatil?“ / „Faktura 2611002 je zaplacená 5. 11.“
+  • „Zadej přijatou fakturu od Alzy na 2 420 Kč s DPH, DUZP 3. 11., zaplacená kartou.“
+  • „Jak jsem na tom s daněmi? Udělej prognózu do konce roku.“
+  • „Připrav přiznání k DPH a kontrolní hlášení za 4. čtvrtletí.“
+  • „Udělej koncept e-mailu s fakturou 2611001 pro odběratele.“
+  • „Otevři přehled.“
+
+
+ČÁST G — Bez AI, v prohlížeči (aplikace Faktury)
+------------------------------------------------
+  • Přehled: příjmy, odhad daní a pojištění, termíny.
+  • Faktury: seznam, „Zaplaceno“, upomínky po splatnosti.
+  • Nová faktura: formulář (více položek, jazyk čeština/angličtina).
+  • Výdaje: přijaté faktury, „Zaplaceno“, kniha příjmů a výdajů (PDF + CSV).
+  • DPH: přiznání + kontrolní hlášení → tlačítko „XML pro EPO“.
+  • Daně a prognóza, Zálohy: daň z příjmů, sociální a zdravotní pojištění.
+
+
+ČÁST H — Kde co je
+------------------
+  • Vydané faktury (PDF): Dokumenty → Účetnictví → Vydané faktury → RR_MM_vydane
+  • Přijaté faktury: ukládej do Dokumenty → Účetnictví → Přijaté faktury → RR_MM_prijate
+    (např. 26_11_prijate), soubor pojmenuj RRMMNNN.pdf (např. 2611001.pdf).
+    Faktury od Alzy se načtou samy, ostatní zadej přes AI nebo v prohlížeči.
+  • XML pro Moje daně: Dokumenty → Účetnictví → Přehledy → <rok>
+  • Nastavení (profil, účet, daně): složka .ucetka v domovské složce (Cmd+Shift+. ukáže skryté složky).
+
+
+ČÁST I — Podání DPH na Moje daně (každé čtvrtletí, do 25. dne po konci čtvrtletí)
+-------------------------------------------------------------------------------
+I1. V AI: „Připrav DPH za 4. čtvrtletí 2026“ (nebo v prohlížeči stránka DPH → XML pro EPO).
+I2. Na https://adisspr.mfcr.cz/pmd/epo/formulare → Načíst soubor → vyber XML přiznání (DPHDP3…).
+I3. Klikni Kontrola. Když je vše zelené → Odeslat (datovou schránkou nebo identitou občana).
+I4. Totéž pro kontrolní hlášení (DPHKH1…) a případně souhrnné hlášení (DPHSHV…).
+I5. Zaplať DPH: variabilní symbol = tvoje DIČ bez „CZ“, číslo účtu najdeš v Daňové informační schránce.
+
+
+Když něco nefunguje
+-------------------
+  • Přehled se neotevře: spusť znovu Instalovat.command (data zůstanou).
+  • AI nevidí nástroje ucetka: část D.
+  • AI hlásí chybu „libgobject“: spusť znovu Instalovat.command a restartuj Antigravity.
+  • Cokoli jiného: pošli text chyby (snímek obrazovky) tomu, kdo ti program připravil, nebo založ issue na GitHubu.
+
+Výpočty daní jsou odhad — přiznání si před odesláním vždy zkontroluj.
+Antigravity posílá obsah konverzace Googlu (jako každé Gemini); data programu zůstávají v Macu.

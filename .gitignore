@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+dist/
+build/
+*.egg-info/
+.DS_Store
+faktury/
+/tmp_*.pdf
+.ruff_cache/
+mcp_config_pro_AI.json

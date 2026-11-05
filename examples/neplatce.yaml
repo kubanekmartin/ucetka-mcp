@@ -1,0 +1,23 @@
+number: "2610901"
+
+issue_date: 2026-10-04
+tax_point_date: 2026-10-04
+due_date: 2026-10-18
+
+customer_id: vzorova-firma
+
+payment:
+  bank_account:
+    prefix: "19"
+    number: "2000145399"
+    bank_code: "0100"
+  variable_symbol: "2610901"
+
+lines:
+  - quantity: 2
+    unit: h
+    description: Workshop AI pro začátečníky
+    unit_price_net: 1500
+    vat_rate: 0
+
+issued_by: Jan Novák
