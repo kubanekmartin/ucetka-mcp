@@ -17,3 +17,14 @@ jobs:
         run: uv sync --locked
       - name: Run tests
         run: DYLD_FALLBACK_LIBRARY_PATH="$(brew --prefix)/lib" uv run pytest -q
+
+  audit:
+    # Fails on known vulnerabilities in the locked runtime dependencies.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+      - name: Audit locked runtime dependencies
+        run: |
+          uv export --no-dev --no-emit-project --no-hashes --format requirements-txt -o requirements-audit.txt
+          uvx pip-audit -r requirements-audit.txt --no-deps --disable-pip
