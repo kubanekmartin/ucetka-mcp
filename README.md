@@ -2,6 +2,7 @@
 
 [![tests](https://github.com/kubanekmartin/ucetka-mcp/actions/workflows/tests.yml/badge.svg)](https://github.com/kubanekmartin/ucetka-mcp/actions/workflows/tests.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Glama](https://glama.ai/mcp/servers/kubanekmartin/ucetka-mcp/badge)](https://glama.ai/mcp/servers/kubanekmartin/ucetka-mcp)
 
 **AI-native accounting for Czech freelancers (OSVČ), driven from an AI chat via MCP.**
 
@@ -83,6 +84,34 @@ ucetka init
 3. Restart your AI client.
 
 Claude Code: `claude mcp add ucetka -- ~/.local/bin/ucetka-mcp`.
+
+### With uvx (once published to PyPI)
+
+Once the package is published to PyPI, you can run the server without cloning the repository (you still need `pango`
+for WeasyPrint, e.g. `brew install pango`). In the Claude Desktop config:
+
+```json
+{
+  "mcpServers": {
+    "ucetka": {
+      "command": "uvx",
+      "args": ["ucetka-mcp"]
+    }
+  }
+}
+```
+
+### Docker
+
+The repository includes a `Dockerfile` for the stdio MCP server (it is also what the Glama directory builds):
+
+```bash
+docker build -t ucetka-mcp .
+docker run -i --rm -v ~/.ucetka:/home/ucetka/.ucetka ucetka-mcp
+```
+
+Your data stays in `~/.ucetka` on the host. The macOS-only tools do not work in the container: Mail.app drafts
+(`draft_invoice_email`) and the dashboard opener (`open_dashboard`).
 
 ## Usage
 
