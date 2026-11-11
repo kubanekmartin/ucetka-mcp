@@ -6,10 +6,22 @@ readme = "README.md"
 requires-python = ">=3.12"
 authors = [{ name = "Martin Kubánek" }]
 license = "MIT"
-keywords = ["mcp", "invoice", "isdoc", "qr-platba", "dph", "epo", "czech", "accounting"]
+keywords = ["mcp", "model-context-protocol", "invoice", "isdoc", "qr-platba", "dph", "epo", "czech", "accounting"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: Czech",
+    "Natural Language :: English",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial :: Accounting",
+]
 dependencies = [
     "pydantic>=2.7",
-    "weasyprint>=62",
+    "weasyprint>=70",
     "qrplatba[png]>=1.2",
     "lxml>=5",
     "pikepdf>=9",
@@ -19,11 +31,17 @@ dependencies = [
     "babel>=2.15",
     "fastapi>=0.136.1",
     "uvicorn>=0.47.0",
-    "python-multipart>=0.0.28",
-    "mcp[cli]>=1.27.1",
+    "python-multipart>=0.0.31",
+    "mcp[cli]>=1.27.1,<2",
     "httpx>=0.28.1",
     "pdfplumber>=0.11",
 ]
+
+[project.urls]
+Homepage = "https://github.com/kubanekmartin/ucetka-mcp"
+Repository = "https://github.com/kubanekmartin/ucetka-mcp"
+Issues = "https://github.com/kubanekmartin/ucetka-mcp/issues"
+Changelog = "https://github.com/kubanekmartin/ucetka-mcp/blob/main/CHANGELOG.md"
 
 [project.scripts]
 ucetka = "ucetka.cli:app"

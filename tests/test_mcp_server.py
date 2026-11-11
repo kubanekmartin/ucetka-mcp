@@ -118,3 +118,60 @@ def test_draft_email_uses_customer_email(monkeypatch: pytest.MonkeyPatch) -> Non
     assert "6\xa0050,00 Kč" in body
     assert attachment.name == "faktura_2610001.pdf"
     assert "odešli ručně" in out
+
+
+def _listed_tools():
+    import asyncio
+
+    return asyncio.run(mcp_server.mcp.list_tools())
+
+
+def test_every_tool_is_fully_documented() -> None:
+    tools = _listed_tools()
+    assert len(tools) == 25
+    for tool in tools:
+        assert tool.title, tool.name
+        assert tool.description and len(tool.description) >= 150, tool.name
+        ann = tool.annotations
+        assert ann is not None, tool.name
+        for hint in ("readOnlyHint", "destructiveHint", "idempotentHint", "openWorldHint"):
+            assert isinstance(getattr(ann, hint), bool), f"{tool.name}.{hint}"
+        for param, schema in tool.inputSchema.get("properties", {}).items():
+            assert schema.get("description"), f"{tool.name}.{param}"
+        for model, schema in tool.inputSchema.get("$defs", {}).items():
+            for field, sub in schema.get("properties", {}).items():
+                assert sub.get("description"), f"{tool.name}:{model}.{field}"
+
+
+def test_tool_annotations_match_side_effects() -> None:
+    ann = {t.name: t.annotations for t in _listed_tools()}
+    read_only = {
+        "get_supplier", "list_customers", "lookup_company", "peek_invoice_number", "list_invoices",
+        "get_invoice", "list_import_issues", "advance_schedule", "open_dashboard",
+    }
+    assert {name for name, a in ann.items() if a.readOnlyHint} == read_only
+    assert {name for name, a in ann.items() if a.destructiveHint} == {"cancel_invoice", "remove_expense"}
+    # Both run the import sync, which writes to the ledger.
+    assert not ann["tax_overview"].readOnlyHint
+    assert not ann["export_vat_return"].readOnlyHint
+    assert {name for name, a in ann.items() if a.openWorldHint} == {
+        "lookup_company", "add_customer", "issue_invoice", "draft_invoice_email", "open_dashboard",
+    }
+
+
+def test_server_metadata() -> None:
+    from ucetka import __version__
+
+    assert "ucetka init" in (mcp_server.mcp.instructions or "")
+    options = mcp_server.mcp._mcp_server.create_initialization_options()
+    assert options.server_version == __version__
+    assert options.instructions == mcp_server.mcp.instructions
+
+
+def test_ares_ico_must_have_eight_digits() -> None:
+    import asyncio
+
+    from mcp.server.fastmcp.exceptions import ToolError
+
+    with pytest.raises(ToolError):
+        asyncio.run(mcp_server.mcp.call_tool("lookup_company", {"ico": "123"}))
