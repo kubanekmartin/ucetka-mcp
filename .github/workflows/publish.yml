@@ -6,8 +6,12 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  publish:
     runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      contents: read
+      id-token: write # PyPI Trusted Publishing (OIDC)
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.3.3
@@ -23,21 +27,7 @@ jobs:
           fi
       - name: Build sdist and wheel
         run: uv build
-      - uses: actions/upload-artifact@v4
-        with:
-          name: dist
-          path: dist/
-          if-no-files-found: error
-
-  publish:
-    needs: build
-    runs-on: ubuntu-latest
-    environment: pypi
-    permissions:
-      id-token: write # PyPI Trusted Publishing (OIDC)
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: dist
-          path: dist/
-      - uses: pypa/gh-action-pypi-publish@v1.12.4
+      # uv publish understands Metadata-Version 2.5 written by uv build
+      # (the twine bundled in pypa/gh-action-pypi-publish v1.12.4 rejects it).
+      - name: Publish to PyPI
+        run: uv publish --trusted-publishing always
