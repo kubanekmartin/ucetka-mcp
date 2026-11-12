@@ -157,6 +157,11 @@ health-insurance minimum, depreciation of assets over 80 000 CZK, travel allowan
 simplified tax documents. The EPO XML follows real filings, but the official EPO schema is not public: always run the
 "Kontrola" check in EPO before submitting.
 
+## Privacy
+
+All data stays on your computer; the only outbound requests are company lookups in ARES (IČO) and ČNB exchange
+rates (date). See [PRIVACY.md](PRIVACY.md).
+
 ## License
 
 MIT, see [LICENSE](LICENSE).

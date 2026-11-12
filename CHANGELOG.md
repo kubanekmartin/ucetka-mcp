@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   checks that the release tag matches the package version.
 - README: installation via `uvx ucetka-mcp`, Docker instructions and the Glama badge.
 - CI job that builds the Docker image and smoke-tests the MCP handshake and PDF rendering.
+- `PRIVACY.md` describing what data is processed, where it is stored and which services are contacted.
+- Tests for the remaining MCP tools: `sync_invoices`, `add_expense`, `mark_expense_paid`, `export_book`,
+  `add_manual_invoice`, `issue_credit_note`.
 
 ## [0.1.0] - 2026-11-11
 
