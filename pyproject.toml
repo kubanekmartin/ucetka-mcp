@@ -42,6 +42,7 @@ Homepage = "https://github.com/kubanekmartin/ucetka-mcp"
 Repository = "https://github.com/kubanekmartin/ucetka-mcp"
 Issues = "https://github.com/kubanekmartin/ucetka-mcp/issues"
 Changelog = "https://github.com/kubanekmartin/ucetka-mcp/blob/main/CHANGELOG.md"
+Privacy = "https://github.com/kubanekmartin/ucetka-mcp/blob/main/PRIVACY.md"
 
 [project.scripts]
 ucetka = "ucetka.cli:app"
